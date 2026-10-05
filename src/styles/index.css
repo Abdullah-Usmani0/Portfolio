@@ -1,0 +1,94 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/bricolage-grotesque';
+@import '@fontsource-variable/fraunces/soft-italic.css';
+@import '@fontsource-variable/inter';
+@import '@fontsource-variable/jetbrains-mono';
+
+/* Design tokens — the single source for colour, type and motion (refined in Claude Design). */
+@theme {
+  --color-night: #07080a;
+  --color-ink: #0e1014;
+  --color-ink-2: #151820;
+  --color-line: #232733;
+  --color-text: #edeef0;
+  --color-muted: #9aa0aa;
+  --color-lime: #c6ff3d;
+  --color-cyan: #3de0ff;
+  --color-amber: #ffb547;
+  --color-coral: #ff6b5c;
+  --color-alpenglow: #ff9db0;
+  --color-snow: #f4f7fb;
+
+  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Fraunces Variable', ui-serif, Georgia, serif;
+  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+
+  --ease-zv-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-zv-in: cubic-bezier(0.55, 0, 1, 0.45);
+}
+
+:root {
+  --dur-micro: 120ms;
+  --dur-ui: 240ms;
+  --dur-panel: 480ms;
+  --glass: rgb(10 12 16 / 0.62);
+  --glass-line: rgb(255 255 255 / 0.08);
+  color-scheme: dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--color-night);
+  color: var(--color-text);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dark glass panel: reads over both the day and the night world. */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-line);
+  backdrop-filter: blur(18px) saturate(1.2);
+  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+}
+
+/* A panel drifts in like a leaf settling on water. */
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
+}
+
+.settle {
+  animation: settle var(--dur-panel) var(--ease-zv-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
