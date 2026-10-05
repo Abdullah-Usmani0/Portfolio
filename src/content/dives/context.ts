@@ -177,7 +177,7 @@ export const context: Dive = {
         { anchor: 'episodic', text: 'Episodic · what happened', short: 'Episodic', side: 'top', tone: 'amber' },
         { anchor: 'semantic', text: 'Semantic · what is true', short: 'Semantic', side: 'top', tone: 'cyan' },
         { anchor: 'procedural', text: 'Procedural · how to act', short: 'Procedural', side: 'top', tone: 'violet' },
-        { anchor: 'gate', text: 'Pattern gate · 3 scenarios, 2 focuses', short: 'Pattern gate', side: 'bottom', tone: 'cream' },
+        { anchor: 'gate', text: 'Pattern gate · 3 scenarios, 2 focuses', short: 'Pattern gate', side: 'bottom', alt: 'top', tone: 'cream' },
       ],
     },
     {

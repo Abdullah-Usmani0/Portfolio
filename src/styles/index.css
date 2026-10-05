@@ -1082,6 +1082,64 @@ main,
   cursor: pointer;
 }
 
+/* Scenario diagrams. */
+.crate-item {
+  transform-box: view-box;
+  animation: crate-pop 9s var(--ease-out-expo) infinite both;
+}
+
+@keyframes crate-pop {
+  0% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+
+  7%,
+  86% {
+    opacity: 1;
+    transform: none;
+  }
+
+  96%,
+  100% {
+    opacity: 0;
+    transform: translate(var(--dx), var(--dy)) scale(0.3);
+  }
+}
+
+.wgll-check .wgll-mark {
+  fill: rgb(246 241 234 / 0.25);
+  transition: fill 300ms var(--ease-out-expo);
+}
+
+.wgll-check[data-state='pass'] .wgll-mark {
+  fill: #b9ef2e;
+}
+
+.wgll-check[data-state='fail'] .wgll-mark {
+  fill: #ff6a55;
+}
+
+.wgll-quote {
+  fill: rgb(246 241 234 / 0.42);
+}
+
+.plain-text {
+  fill: var(--cream);
+  font: 400 14px var(--font-sans);
+}
+
+.plain-text tspan {
+  transition:
+    fill 400ms var(--ease-out-expo),
+    opacity 300ms var(--ease-out-expo);
+}
+
+.plain-after {
+  font-size: 16px;
+  font-weight: 500;
+}
+
 @keyframes dive-fade {
   from {
     opacity: 0;
@@ -1103,6 +1161,11 @@ main,
 }
 
 @media (max-width: 759px) {
+  /* A little tighter, so a column of labels fits beside a small stack. */
+  .dive-label {
+    padding: 4px 9px;
+  }
+
   .dive-card {
     left: 12px;
     right: 12px;
@@ -1147,7 +1210,8 @@ main,
   }
 
   .loop-node,
-  .kernel-needle {
+  .kernel-needle,
+  .crate-item {
     animation: none;
   }
 

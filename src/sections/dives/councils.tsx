@@ -1,8 +1,7 @@
 /** The Curriculum Council's diagrams: the SkillOps loop, the autonomy kernel, and work flowing between the councils. */
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
-import { anchorOf } from '@/world/anchors.ts';
-import { worldView } from '@/world/view.ts';
+import { WorldArcs, type Arc } from './arcs.tsx';
 import { AMBER, CREAM, LIME } from './colors.ts';
 
 
@@ -172,88 +171,13 @@ export function Kernel() {
 }
 
 /** Work flowing between the councils, drawn over the town: arcs from roof to roof, parcels riding them. */
-const EDGES = [
+const EDGES: readonly Arc[] = [
   { from: 'research', to: 'design', label: 'signals', lift: 0.7, at: 0.5 },
   { from: 'design', to: 'implementation', label: 'focus maps', lift: 0.7, at: 0.5 },
   { from: 'implementation', to: 'audit', label: 'scenarios', lift: 0.6, at: 0.42 },
   { from: 'implementation', to: 'training', label: 'videos', lift: 1.05, at: 0.74 },
   { from: 'implementation', to: 'media', label: 'faces + voices', lift: 1.3, at: 0.8 },
-  { from: 'audit', to: 'design', label: 'findings → playbook', lift: 1.6, at: 0.5, back: true },
-] as const;
+  { from: 'audit', to: 'design', label: 'findings → playbook', lift: 1.6, at: 0.5, tone: 'back' },
+];
 
-export function Loops({ scene }: { scene: string }) {
-  const paths = useRef<(SVGPathElement | null)[]>([]);
-  const parcels = useRef<(SVGCircleElement | null)[]>([]);
-  const labels = useRef<(SVGTextElement | null)[]>([]);
-  useEffect(() => {
-    const start = performance.now();
-    const tick = () => {
-      const time = (performance.now() - start) / 1000;
-      const top = (id: string) => {
-        const a = anchorOf(scene, id);
-        return a && worldView.project ? worldView.project(a.group, a.x, a.y + a.h / 2) : null;
-      };
-      EDGES.forEach((e, i) => {
-        const a = top(e.from);
-        const b = top(e.to);
-        const path = paths.current[i];
-        if (!a || !b || !path) return;
-        const span = Math.abs(b.x - a.x);
-        const ctrl = { x: (a.x + b.x) / 2, y: Math.min(a.y, b.y) - span * 0.34 * e.lift - 18 };
-        path.setAttribute('d', `M${a.x.toFixed(1)},${a.y.toFixed(1)} Q${ctrl.x.toFixed(1)},${ctrl.y.toFixed(1)} ${b.x.toFixed(1)},${b.y.toFixed(1)}`);
-        const at = (t: number) => ({
-          x: (1 - t) ** 2 * a.x + 2 * (1 - t) * t * ctrl.x + t * t * b.x,
-          y: (1 - t) ** 2 * a.y + 2 * (1 - t) * t * ctrl.y + t * t * b.y,
-        });
-        for (let k = 0; k < 2; k++) {
-          const dot = parcels.current[i * 2 + k];
-          const p = at((time * 0.16 + k / 2 + i * 0.13) % 1);
-          dot?.setAttribute('cx', p.x.toFixed(1));
-          dot?.setAttribute('cy', p.y.toFixed(1));
-        }
-        const mid = at(e.at);
-        labels.current[i]?.setAttribute('x', mid.x.toFixed(1));
-        labels.current[i]?.setAttribute('y', (mid.y - 9).toFixed(1));
-      });
-    };
-    gsap.ticker.add(tick);
-    return () => gsap.ticker.remove(tick);
-  }, [scene]);
-  return (
-    <svg className="loops-svg" aria-hidden>
-      {EDGES.map((e, i) => (
-        <g key={e.label}>
-          <path
-            ref={(el) => {
-              paths.current[i] = el;
-            }}
-            fill="none"
-            stroke={'back' in e ? LIME : CREAM}
-            strokeOpacity={'back' in e ? 0.9 : 0.55}
-            strokeWidth={'back' in e ? 2 : 1.5}
-            strokeDasharray={'back' in e ? '6 6' : undefined}
-          />
-          {[0, 1].map((k) => (
-            <circle
-              key={k}
-              ref={(el) => {
-                parcels.current[i * 2 + k] = el;
-              }}
-              r={4.5}
-              fill={'back' in e ? LIME : AMBER}
-            />
-          ))}
-          <text
-            ref={(el) => {
-              labels.current[i] = el;
-            }}
-            textAnchor="middle"
-            className="diagram-label loops-label"
-          >
-            {e.label}
-          </text>
-        </g>
-      ))}
-    </svg>
-  );
-}
+export const Loops = ({ scene }: { scene: string }) => <WorldArcs scene={scene} edges={EDGES} />;

@@ -12,7 +12,7 @@ import { seeded, tone } from './types.ts';
  * a classroom, a studio) and the people doing it. Built once, drawn only while open.
  */
 
-const Z = { wall: 0.44, slab: 0.4405, back: 0.441, mid: 0.442, people: 0.443, front: 0.444, top: 0.445 } as const;
+export const Z = { wall: 0.44, slab: 0.4405, back: 0.441, mid: 0.442, people: 0.443, front: 0.444, top: 0.445 } as const;
 
 /** Monitors: lines of text scrolling up, each screen on its own beat. */
 function screenMaterial() {
@@ -90,7 +90,7 @@ export function interiorKit() {
 export type InteriorKit = ReturnType<typeof interiorKit>;
 
 /** Rectangles and triangles merged into one mesh per material. */
-class Flat {
+export class Flat {
   private parts = new Map<THREE.Material, number[]>();
   constructor(
     private group: THREE.Group,
@@ -137,7 +137,7 @@ class Flat {
 }
 
 /** Monitors as one mesh. */
-function monitors(group: THREE.Group, kit: InteriorKit, boxes: readonly [number, number, number, number][], z: number = Z.top) {
+export function monitors(group: THREE.Group, kit: InteriorKit, boxes: readonly [number, number, number, number][], z: number = Z.top) {
   const pos: number[] = [];
   const uv: number[] = [];
   const seed: number[] = [];
@@ -164,8 +164,8 @@ function monitors(group: THREE.Group, kit: InteriorKit, boxes: readonly [number,
   group.add(mesh);
 }
 
-type Pose = 'sit' | 'stand' | 'walk' | 'climb';
-interface Person {
+export type Pose = 'sit' | 'stand' | 'walk' | 'climb';
+export interface Person {
   x: number;
   y: number;
   pose: Pose;
@@ -182,7 +182,7 @@ interface Person {
 }
 
 /** People at work: typing, standing at a bench, pacing or climbing. */
-function crew(group: THREE.Group, kit: InteriorKit, people: readonly Person[]) {
+export function crew(group: THREE.Group, kit: InteriorKit, people: readonly Person[]) {
   const n = people.length;
   const geo = new THREE.PlaneGeometry(12, 27);
   geo.translate(0, 13.5, 0);
@@ -244,7 +244,7 @@ function crew(group: THREE.Group, kit: InteriorKit, people: readonly Person[]) {
 }
 
 /** A desk seen from the front, with a monitor on it: the desk hides a sitter's legs. */
-function desk(flat: Flat, front: Flat, kit: InteriorKit, x: number, y: number, w = 26): [number, number, number, number] {
+export function desk(flat: Flat, front: Flat, kit: InteriorKit, x: number, y: number, w = 26): [number, number, number, number] {
   front.rect(kit.mats.wood, x, y, x + w, y + 11);
   front.rect(kit.mats.slab, x + 2, y, x + 4, y + 9);
   flat.rect(kit.mats.metal, x + w * 0.6, y + 11, x + w * 0.66, y + 14);
@@ -252,7 +252,7 @@ function desk(flat: Flat, front: Flat, kit: InteriorKit, x: number, y: number, w
 }
 
 /** The back wall and floors of a plain room. */
-function room(group: THREE.Group, kit: InteriorKit, x0: number, y0: number, x1: number, y1: number, floors: readonly number[] = []) {
+export function room(group: THREE.Group, kit: InteriorKit, x0: number, y0: number, x1: number, y1: number, floors: readonly number[] = []) {
   const wall = new Flat(group, Z.wall);
   wall.rect(kit.mats.room, x0, y0, x1, y1);
   // A soft band of deeper colour near the floor of each storey, so rooms read as lit from above.
@@ -268,7 +268,7 @@ export interface Interior {
   update: (f: Frame) => void;
 }
 
-function interior(build: (g: THREE.Group, later: ((f: Frame) => void)[]) => void): Interior {
+export function interior(build: (g: THREE.Group, later: ((f: Frame) => void)[]) => void): Interior {
   const group = new THREE.Group();
   group.visible = false;
   const later: ((f: Frame) => void)[] = [];

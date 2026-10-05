@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mixHex, smootherstep } from '@/motion/color.ts';
 import { ANCHOR_IDS } from '../anchorIds.ts';
 import { registerAnchors, type Anchor } from '../anchors.ts';
+import { Painter, anchorOfBox, cutGlsl, cutUniform, paletteMaterial, type Box } from './cutaway.ts';
 import { shared } from '../gl/flat.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
 import {
@@ -43,7 +44,6 @@ const SLOTS = {
   beacon: 10,
   dark: 11,
 } as const;
-type Slot = (typeof SLOTS)[keyof typeof SLOTS];
 
 const ACCENTS: Record<number, string> = {
   [SLOTS.research]: '#6fa39d',
@@ -53,66 +53,6 @@ const ACCENTS: Record<number, string> = {
   [SLOTS.training]: '#c9a14b',
   [SLOTS.media]: '#8b6fb3',
 };
-
-interface Box {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
-}
-
-class Painter {
-  pos: number[] = [];
-  slot: number[] = [];
-  /** Per vertex: the building (index + 1) whose cutaway hides it, or 0. */
-  cut: number[] = [];
-  /** The building being painted (index + 1), and its frame for the camera. */
-  private building = 0;
-  boxes: Box[] = [];
-  /** Off while painting things the camera should not frame, like the radio mast. */
-  framing = true;
-  begin(k: number) {
-    this.building = k + 1;
-    this.boxes[k] = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
-  }
-  tri(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, s: Slot, opens = s === SLOTS.wall) {
-    this.pos.push(ax, ay, 0, bx, by, 0, cx, cy, 0);
-    this.slot.push(s, s, s);
-    const c = opens ? this.building : 0;
-    this.cut.push(c, c, c);
-    const box = this.building && this.framing ? this.boxes[this.building - 1] : undefined;
-    if (box) {
-      box.x0 = Math.min(box.x0, ax, bx, cx);
-      box.x1 = Math.max(box.x1, ax, bx, cx);
-      box.y0 = Math.min(box.y0, ay, by, cy);
-      box.y1 = Math.max(box.y1, ay, by, cy);
-    }
-  }
-  rect(x0: number, y0: number, x1: number, y1: number, s: Slot, opens = s === SLOTS.wall) {
-    this.tri(x0, y0, x1, y0, x1, y1, s, opens);
-    this.tri(x0, y0, x1, y1, x0, y1, s, opens);
-  }
-  /** A half-disc (dome) sitting on y. */
-  dome(cx: number, y: number, r: number, s: Slot) {
-    const n = 20;
-    for (let i = 0; i < n; i++) {
-      const a0 = (Math.PI * i) / n;
-      const a1 = (Math.PI * (i + 1)) / n;
-      this.tri(cx, y, cx + Math.cos(a0) * r, y + Math.sin(a0) * r, cx + Math.cos(a1) * r, y + Math.sin(a1) * r, s);
-    }
-  }
-  quadPoints(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number, s: Slot, opens = s === SLOTS.wall) {
-    this.tri(ax, ay, bx, by, cx, cy, s, opens);
-    this.tri(ax, ay, cx, cy, dx, dy, s, opens);
-  }
-  mesh(material: THREE.ShaderMaterial) {
-    const g = new THREE.BufferGeometry();
-    g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
-    g.setAttribute('aSlot', new THREE.Float32BufferAttribute(this.slot, 1));
-    g.setAttribute('aCut', new THREE.Float32BufferAttribute(this.cut, 1));
-    return new THREE.Mesh(g, material);
-  }
-}
 
 class Windows {
   pos: number[] = [];
@@ -148,39 +88,6 @@ class Windows {
   }
 }
 
-/** How open each building's cutaway is (0 = shut, 1 = the front wall gone), shared by walls and windows. */
-const cutUniform = () => ({ value: BUILDINGS.map(() => 0) });
-
-/** GLSL: how far this vertex's wall has fallen away. */
-const CUT = /* glsl */ `
-  attribute float aCut;
-  uniform float uCut[${BUILDINGS.length}];
-  float openness() { return aCut > 0.5 ? uCut[int(aCut - 0.5)] : 0.0; }`;
-
-function paletteMaterial(cut: { value: number[] }) {
-  const colors = Array.from({ length: 12 }, () => new THREE.Color());
-  const material = new THREE.ShaderMaterial({
-    uniforms: { uColors: { value: colors }, uCut: cut },
-    transparent: true,
-    vertexShader: /* glsl */ `
-      attribute float aSlot;
-      uniform vec3 uColors[12];
-      ${CUT}
-      varying vec3 vColor;
-      varying float vAlpha;
-      void main() {
-        vColor = uColors[int(aSlot + 0.5)];
-        vAlpha = 1.0 - 0.95 * openness();
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }`,
-    fragmentShader: /* glsl */ `
-      varying vec3 vColor;
-      varying float vAlpha;
-      void main() { gl_FragColor = vec4(vColor, vAlpha); }`,
-  });
-  return { material, colors };
-}
-
 /** Lit windows with someone at work behind each: walking past, or bent over a glowing screen. */
 function windowMaterial(cut: { value: number[] }) {
   const uniforms = {
@@ -197,7 +104,7 @@ function windowMaterial(cut: { value: number[] }) {
     transparent: true,
     vertexShader: /* glsl */ `
       attribute float aSeed;
-      ${CUT}
+      ${cutGlsl(BUILDINGS.length)}
       varying vec2 vUv;
       varying float vSeed;
       varying float vAlpha;
@@ -253,7 +160,7 @@ function windowMaterial(cut: { value: number[] }) {
 }
 
 export function councils(group: THREE.Group) {
-  const body = new Painter();
+  const body = new Painter((slot) => slot === SLOTS.wall);
   const win = new Windows();
   const cx = onValley('councils', 330);
   const at = (x: number) => riverTop(x) + 1;
@@ -366,15 +273,15 @@ export function councils(group: THREE.Group) {
     return new THREE.Vector2(x + 76, y + 232);
   })();
 
-  const cut = cutUniform();
-  const palette = paletteMaterial(cut);
+  const cut = cutUniform(BUILDINGS.length);
+  const palette = paletteMaterial(cut, 12);
   const bodyMesh = body.mesh(palette.material);
   bodyMesh.position.z = 0.45;
   group.add(bodyMesh);
   for (const room of interiors) group.add(room.group);
 
   // Where the camera can fly: each building, and the whole town.
-  const anchor = (b: Box): Anchor => ({ x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2, w: b.x1 - b.x0, h: b.y1 - b.y0 });
+  const anchor = anchorOfBox;
   const town = body.boxes.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }));
   const anchors: Record<(typeof ANCHOR_IDS.councils)[number], Anchor> = {
     town: anchor(town),

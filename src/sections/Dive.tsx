@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { DIVES, stepIndex, type Dive as DiveData, type Label } from '@/content/dives.ts';
+import type { Side } from '@/content/dives/types.ts';
 import { scroller } from '@/motion/SmoothScroll.tsx';
 import { closeDive, openDive, useDive } from '@/motion/store.ts';
 import { cn } from '@/ui/cn.ts';
@@ -31,23 +32,67 @@ function useSheet() {
   return sheet;
 }
 
+/** Labels keep below the back button. */
+const LABEL_TOP = 66;
+
+/** Where the step's labels sit this frame, so a pin they would cover can stand aside. */
+const labelBoxes: { x0: number; y0: number; x1: number; y1: number }[] = [];
+
 /** Labels that ride on the world: one per building, following the camera as it flies. */
-function Pins({ dive, active }: { dive: DiveData; active: string }) {
+function Pins({ dive, active, card }: { dive: DiveData; active: string; card: React.RefObject<HTMLDivElement | null> }) {
   const refs = useRef<(HTMLButtonElement | null)[]>([]);
   useEffect(() => {
+    const sizes: { w: number; h: number }[] = [];
     const place = () => {
+      const shut = card.current?.getBoundingClientRect();
+      const spots: { el: HTMLButtonElement; x: number; y: number; w: number; h: number }[] = [];
       dive.pins?.forEach((pin, i) => {
         const el = refs.current[i];
         if (!el) return;
         const a = anchorOf(dive.scene, pin.anchor);
         const p = a && worldView.project ? worldView.project(a.group, a.x, a.y + a.h / 2) : null;
-        el.style.visibility = p ? '' : 'hidden';
-        if (p) el.style.transform = `translate3d(${p.x.toFixed(1)}px, ${p.y.toFixed(1)}px, 0)`;
+        if (!p) {
+          el.style.visibility = 'hidden';
+          return;
+        }
+        // Keep the whole pin on screen (it is drawn centred above its point).
+        const size = (sizes[i] ??= { w: el.offsetWidth, h: el.offsetHeight });
+        const half = size.w / 2 + 8;
+        spots.push({ el, x: Math.min(window.innerWidth - half, Math.max(half, p.x)), y: Math.max(LABEL_TOP + 30, p.y), ...size });
       });
+      // Pins held against the same edge would land on each other: stack them instead.
+      spots.sort((a, b) => a.y - b.y);
+      for (let k = 1; k < spots.length; k++) {
+        const s = spots[k]!;
+        // Only ever downwards, below one placed pin at a time, so this settles within k passes.
+        for (let moved = true, pass = 0; moved && pass < k; pass++) {
+          moved = false;
+          for (let j = 0; j < k; j++) {
+            const o = spots[j]!;
+            const gap = Math.max(s.h, o.h) + 6;
+            if (Math.abs(s.x - o.x) < (s.w + o.w) / 2 + 6 && Math.abs(s.y - o.y) < gap) {
+              s.y = o.y + gap;
+              moved = true;
+            }
+          }
+        }
+      }
+      for (const s of spots) {
+        // A pin the step card covers can be neither read nor pressed, and the step's own
+        // labels outrank it.
+        const x0 = s.x - s.w / 2;
+        const x1 = s.x + s.w / 2;
+        const y0 = s.y - 12 - s.h;
+        const y1 = s.y - 12;
+        const under = shut && x1 > shut.left && x0 < shut.right && y1 > shut.top && y0 < shut.bottom;
+        const covered = labelBoxes.some((b) => x1 > b.x0 - 4 && x0 < b.x1 + 4 && y1 > b.y0 - 4 && y0 < b.y1 + 4);
+        s.el.style.visibility = under || covered ? 'hidden' : '';
+        s.el.style.transform = `translate3d(${s.x.toFixed(1)}px, ${s.y.toFixed(1)}px, 0)`;
+      }
     };
     gsap.ticker.add(place);
     return () => gsap.ticker.remove(place);
-  }, [dive]);
+  }, [dive, card]);
   if (!dive.pins) return null;
   return (
     <>
@@ -70,41 +115,66 @@ function Pins({ dive, active }: { dive: DiveData; active: string }) {
 }
 
 /** Words that ride on the world beside what they name, shown and hidden in time with it. */
-/** Labels keep below the back button. */
-const LABEL_TOP = 66;
-
 function Labels({ scene, labels, sheet }: { scene: string; labels: readonly Label[]; sheet: boolean }) {
   const refs = useRef<(HTMLSpanElement | null)[]>([]);
   useEffect(() => {
     const sizes: { w: number; h: number }[] = [];
+    // How clear each label's spot is, eased: where two would collide, the later one in the
+    // list (the less important) fades out instead of printing over the other.
+    const clear: (number | undefined)[] = [];
+    /** The screen box a label of this size takes on this side of its anchor. */
+    const boxAt = (a: NonNullable<ReturnType<typeof anchorOf>>, side: Side, size: { w: number; h: number }) => {
+      const px = side === 'right' ? a.x + a.w / 2 : side === 'left' ? a.x - a.w / 2 : a.x;
+      const py = side === 'top' ? a.y + a.h / 2 : side === 'bottom' ? a.y - a.h / 2 : a.y;
+      const p = worldView.project?.(a.group, px, py);
+      if (!p) return null;
+      const x = side === 'right' ? p.x + 12 : side === 'left' ? p.x - 12 - size.w : p.x - size.w / 2;
+      const y = side === 'top' ? p.y - 10 - size.h : side === 'bottom' ? p.y + 10 : p.y - size.h / 2;
+      // Never off the edge of the screen.
+      const x0 = Math.min(window.innerWidth - size.w - 8, Math.max(8, x));
+      const y0 = Math.min(window.innerHeight - size.h - 8, Math.max(LABEL_TOP, y));
+      return { x0, y0, x1: x0 + size.w, y1: y0 + size.h };
+    };
+    // Pills may touch, and overlap by a few pixels of padding, but never over their words.
+    const blocked = (box: { x0: number; y0: number; x1: number; y1: number }) =>
+      labelBoxes.some((b) => box.x1 > b.x0 - 3 && box.x0 < b.x1 + 3 && box.y1 > b.y0 + 3 && box.y0 < b.y1 - 3);
     const place = () => {
+      labelBoxes.length = 0;
       labels.forEach((label, i) => {
         const el = refs.current[i];
         if (!el) return;
         const a = anchorOf(scene, label.anchor);
-        const side = label.side ?? 'right';
-        const px = !a ? 0 : side === 'right' ? a.x + a.w / 2 : side === 'left' ? a.x - a.w / 2 : a.x;
-        const py = !a ? 0 : side === 'top' ? a.y + a.h / 2 : side === 'bottom' ? a.y - a.h / 2 : a.y;
-        const p = a && worldView.project ? worldView.project(a.group, px, py) : null;
         const shown = label.id ? (worldView.labels[label.id] ?? 1) : 1;
-        if (!p || shown < 0.02) {
-          el.style.visibility = 'hidden';
-          return;
-        }
         // Measured once: the words never change while the step is open.
         const size = (sizes[i] ??= { w: el.offsetWidth, h: el.offsetHeight });
-        let x = side === 'right' ? p.x + 12 : side === 'left' ? p.x - 12 - size.w : p.x - size.w / 2;
-        let y = side === 'top' ? p.y - 10 - size.h : side === 'bottom' ? p.y + 10 : p.y - size.h / 2;
-        // Never off the edge of the screen.
-        x = Math.min(window.innerWidth - size.w - 8, Math.max(8, x));
-        y = Math.min(window.innerHeight - size.h - 8, Math.max(LABEL_TOP, y));
-        el.style.visibility = '';
-        el.style.opacity = shown.toFixed(3);
-        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+        let box = a && shown >= 0.02 ? boxAt(a, label.side ?? 'right', size) : null;
+        if (!a || !box) {
+          el.style.visibility = 'hidden';
+          clear[i] = undefined;
+          return;
+        }
+        let hit = blocked(box);
+        if (hit && label.alt) {
+          const other = boxAt(a, label.alt, size);
+          if (other && !blocked(other)) {
+            box = other;
+            hit = false;
+          }
+        }
+        const was = clear[i];
+        const c = (clear[i] = was === undefined ? (hit ? 0 : 1) : was + ((hit ? 0 : 1) - was) * 0.2);
+        const alpha = shown * c;
+        el.style.visibility = alpha < 0.02 ? 'hidden' : '';
+        el.style.opacity = alpha.toFixed(3);
+        el.style.transform = `translate3d(${box.x0.toFixed(1)}px, ${box.y0.toFixed(1)}px, 0)`;
+        if (!hit) labelBoxes.push(box);
       });
     };
     gsap.ticker.add(place);
-    return () => gsap.ticker.remove(place);
+    return () => {
+      gsap.ticker.remove(place);
+      labelBoxes.length = 0;
+    };
   }, [scene, labels, sheet]);
   return (
     <div className="dive-labels" aria-hidden>
@@ -217,7 +287,7 @@ export function Dive() {
           <button type="button" className="dive-back" onClick={closeDive}>
             <span aria-hidden>←</span> Back to the valley
           </button>
-          {!current.diagram || onWorld(current.diagram, sheet) ? <Pins dive={dive} active={current.id} /> : null}
+          {!current.diagram || onWorld(current.diagram, sheet) ? <Pins dive={dive} active={current.id} card={card} /> : null}
           {current.labels ? <Labels key={`labels-${current.id}`} scene={dive.scene} labels={current.labels} sheet={sheet} /> : null}
           {current.diagram && (!sheet || onWorld(current.diagram, sheet)) ? <DiveDiagram key={`diagram-${current.id}`} kind={current.diagram} scene={dive.scene} /> : null}
           <div

@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Diagram } from '@/content/dives.ts';
 import { Kernel, Loops, SkillOps } from './councils.tsx';
 import { AttentionBars, AttentionCurve, FaqMeter, Failures, FirstWord } from './context.tsx';
+import { Crate, FarmLoops, Machinery, Plain, Review, Wgll } from './scenarios.tsx';
 
 /**
  * How each diagram is drawn. `world` diagrams ride on the world itself (drawn over the
@@ -23,4 +24,10 @@ export const DIAGRAMS: Readonly<Record<Diagram, DiagramSpec>> = {
   firstword: { wide: 'panel', render: () => <FirstWord />, inline: () => <FirstWord /> },
   faq: { wide: 'panel', render: () => <FaqMeter />, inline: () => <FaqMeter /> },
   failures: { wide: 'panel', render: () => <Failures />, inline: () => <Failures inline /> },
+  crate: { wide: 'panel', render: () => <Crate />, inline: () => <Crate /> },
+  wgll: { wide: 'panel', render: () => <Wgll />, inline: () => <Wgll /> },
+  review: { wide: 'panel', render: () => <Review />, inline: () => <Review /> },
+  plain: { wide: 'panel', render: () => <Plain />, inline: () => <Plain /> },
+  farmloops: { wide: 'world', render: (scene) => <FarmLoops scene={scene} /> },
+  machinery: { wide: 'panel', render: () => <Machinery />, inline: () => <Machinery /> },
 };

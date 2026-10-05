@@ -7,6 +7,7 @@
 import { ascent, chapters, index } from './site.ts';
 import { context } from './dives/context.ts';
 import { councils } from './dives/councils.ts';
+import { scenarios } from './dives/scenarios.ts';
 import type { Dive } from './dives/types.ts';
 
 export type { Diagram, Dive, DiveStep, Label, Pin, Tone, Widget } from './dives/types.ts';
@@ -47,7 +48,7 @@ const careerDive: Dive = {
 export const DIVES: Readonly<Record<string, Dive>> = {
   npcs: proofDive('npcs', 'village'),
   councils,
-  scenarios: proofDive('scenarios', 'farm'),
+  scenarios,
   learners: proofDive('learners', 'bridge'),
   voice: proofDive('voice', 'stage'),
   mind: context,

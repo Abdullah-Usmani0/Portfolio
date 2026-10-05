@@ -1,7 +1,20 @@
 /** The shape of a deep dive: what "How it works" opens for a scene. */
 
 /** An animated diagram drawn for a step: over the world, in the sky, or inside the card. */
-export type Diagram = 'skillops' | 'kernel' | 'loops' | 'attention' | 'firstword' | 'faq' | 'failures';
+export type Diagram =
+  | 'skillops'
+  | 'kernel'
+  | 'loops'
+  | 'attention'
+  | 'firstword'
+  | 'faq'
+  | 'failures'
+  | 'crate'
+  | 'wgll'
+  | 'review'
+  | 'plain'
+  | 'farmloops'
+  | 'machinery';
 
 /** An interactive panel inside the step card. */
 export type Widget = 'context-lab';
@@ -10,13 +23,17 @@ export type Widget = 'context-lab';
 export type Tone = 'cream' | 'lime' | 'amber' | 'cyan' | 'violet' | 'red';
 
 /** A label that rides on the world, next to an anchor, while its step is open. */
+export type Side = 'right' | 'left' | 'top' | 'bottom';
+
 export interface Label {
   anchor: string;
   text: string;
   /** Fewer words, for a phone. */
   short?: string;
   /** Which side of the anchor it sits on (default: right). */
-  side?: 'right' | 'left' | 'top' | 'bottom';
+  side?: Side;
+  /** Where it goes instead when another label already holds that spot (a phone, mostly). */
+  alt?: Side;
   tone?: Tone;
   /** A colour for its dot, when it names something with its own colour. */
   dot?: string;

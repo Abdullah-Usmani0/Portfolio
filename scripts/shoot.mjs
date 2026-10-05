@@ -71,6 +71,11 @@ for (const dive of arg('dive', '').split(',').filter(Boolean)) {
     await page.waitForTimeout(Number(arg('settle', '2600')));
     await page.screenshot({ path: join(out, `${tag}-dive-${dive}-${String(step).padStart(2, '0')}.png`) });
     console.log('dive', dive, step, await page.evaluate(() => document.querySelector('.dive-title')?.textContent));
+    // Labels that are on the step but not readable right now (crowded out, or not yet in).
+    const faded = await page.evaluate(() =>
+      [...document.querySelectorAll('.dive-label')].filter((el) => el.style.visibility === 'hidden' || Number(el.style.opacity || 1) < 0.5).map((el) => el.textContent),
+    );
+    if (faded.length) console.log('  faded:', faded.join(' | '));
   }
   await page.evaluate(() => window.__site.dive(null));
   await page.waitForTimeout(2200);

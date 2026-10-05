@@ -31,7 +31,7 @@ const GAP = 2600;
 export const SCENES: readonly Scene[] = [
   { id: 'top', look: 'dawn', x: 0, y: 0, pan: 745 },
   { id: 'councils', look: 'day', x: GAP, y: 0, pan: 600 },
-  { id: 'scenarios', look: 'afternoon', x: GAP * 2, y: 0, pan: 545 },
+  { id: 'scenarios', look: 'afternoon', x: GAP * 2, y: 0, pan: 440 },
   { id: 'learners', look: 'golden', x: GAP * 3, y: 0, pan: 636 },
   { id: 'npcs', look: 'dusk', x: GAP * 4, y: 0, pan: 0 },
   { id: 'mind', look: 'night', x: GAP * 5, y: 0, pan: 484 },
