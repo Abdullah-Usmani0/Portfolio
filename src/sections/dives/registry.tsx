@@ -3,6 +3,7 @@ import type { Diagram } from '@/content/dives.ts';
 import { Kernel, Loops, SkillOps } from './councils.tsx';
 import { AttentionBars, AttentionCurve, FaqMeter, Failures, FirstWord } from './context.tsx';
 import { AdLab, Honours, Kit, Logs, NlSql, Research, ZeroBoard } from './career.tsx';
+import { AskChat, Attempts, BeforeAfter, ColdRead, FixDiff, Personas, Triage } from './learners.tsx';
 import { Crate, FarmLoops, Machinery, Plain, Review, Wgll } from './scenarios.tsx';
 
 /**
@@ -38,4 +39,11 @@ export const DIAGRAMS: Readonly<Record<Diagram, DiagramSpec>> = {
   adlab: { wide: 'panel', render: () => <AdLab />, inline: () => <AdLab /> },
   zero: { wide: 'panel', render: () => <ZeroBoard />, inline: () => <ZeroBoard /> },
   kit: { wide: 'panel', render: () => <Kit />, inline: () => <Kit /> },
+  personas: { wide: 'panel', render: () => <Personas />, inline: () => <Personas /> },
+  coldread: { wide: 'panel', render: () => <ColdRead />, inline: () => <ColdRead /> },
+  askchat: { wide: 'panel', render: () => <AskChat />, inline: () => <AskChat /> },
+  attempts: { wide: 'panel', render: () => <Attempts />, inline: () => <Attempts /> },
+  triage: { wide: 'panel', render: () => <Triage />, inline: () => <Triage /> },
+  fixdiff: { wide: 'panel', render: () => <FixDiff />, inline: () => <FixDiff /> },
+  beforeafter: { wide: 'panel', render: () => <BeforeAfter />, inline: () => <BeforeAfter /> },
 };

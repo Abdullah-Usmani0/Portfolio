@@ -4,18 +4,7 @@
  */
 import { useRef } from 'react';
 import { AMBER, CREAM, CYAN, LIME, RED, VIOLET } from './colors.ts';
-import { Frame, useClock } from './svg.tsx';
-
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-/** 0 → 1 between a and b, eased. */
-const ease = (a: number, b: number, t: number) => {
-  const u = clamp01((t - a) / (b - a));
-  return u * u * (3 - 2 * u);
-};
-/** The first `n` characters of `s`, n growing from a to b. */
-const typed = (s: string, a: number, b: number, t: number) => s.slice(0, Math.round(s.length * clamp01((t - a) / (b - a))));
-/** Everything fades out just before a loop starts again. */
-const fadeOut = (t: number, loop: number) => 1 - ease(loop - 0.6, loop - 0.1, t);
+import { clamp01, ease, fadeOut, Frame, typed, useClock } from './svg.tsx';
 
 /* ─── Base camp honours ─────────────────────────────────────────────────────────────── */
 

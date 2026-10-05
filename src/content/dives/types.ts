@@ -21,7 +21,14 @@ export type Diagram =
   | 'logs'
   | 'adlab'
   | 'zero'
-  | 'kit';
+  | 'kit'
+  | 'personas'
+  | 'coldread'
+  | 'askchat'
+  | 'attempts'
+  | 'triage'
+  | 'fixdiff'
+  | 'beforeafter';
 
 /** An interactive panel inside the step card. */
 export type Widget = 'context-lab';

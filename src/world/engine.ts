@@ -204,7 +204,10 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         // A layer the camera has flown past is behind it.
         l.group.visible = s !== null;
         if (s === null) continue;
-        if (l.fixed && diving) o.y -= DIVE_DROP * diving.t;
+        // The foreground sinks out of the way, and the lift the dive's slide gives it is taken
+        // back: diving down to a set piece low in the valley (as a phone does, to raise it
+        // above the card) slides a near layer up faster than the target.
+        if (l.fixed && diving) o.y -= DIVE_DROP * diving.t + (target && shift ? Math.max(0, -shift.y) * s * (l.p / target.p) : 0);
         l.group.scale.set(s, s, 1);
         l.group.position.x = o.x;
         l.group.position.y = o.y;
