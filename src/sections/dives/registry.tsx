@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Diagram } from '@/content/dives.ts';
 import { Kernel, Loops, SkillOps } from './councils.tsx';
 import { AttentionBars, AttentionCurve, FaqMeter, Failures, FirstWord } from './context.tsx';
+import { AdLab, Honours, Kit, Logs, NlSql, Research, ZeroBoard } from './career.tsx';
 import { Crate, FarmLoops, Machinery, Plain, Review, Wgll } from './scenarios.tsx';
 
 /**
@@ -30,4 +31,11 @@ export const DIAGRAMS: Readonly<Record<Diagram, DiagramSpec>> = {
   plain: { wide: 'panel', render: () => <Plain />, inline: () => <Plain /> },
   farmloops: { wide: 'world', render: (scene) => <FarmLoops scene={scene} /> },
   machinery: { wide: 'panel', render: () => <Machinery />, inline: () => <Machinery /> },
+  honours: { wide: 'panel', render: () => <Honours />, inline: () => <Honours /> },
+  research: { wide: 'panel', render: () => <Research />, inline: () => <Research /> },
+  nlsql: { wide: 'panel', render: () => <NlSql />, inline: () => <NlSql /> },
+  logs: { wide: 'panel', render: () => <Logs />, inline: () => <Logs /> },
+  adlab: { wide: 'panel', render: () => <AdLab />, inline: () => <AdLab /> },
+  zero: { wide: 'panel', render: () => <ZeroBoard />, inline: () => <ZeroBoard /> },
+  kit: { wide: 'panel', render: () => <Kit />, inline: () => <Kit /> },
 };

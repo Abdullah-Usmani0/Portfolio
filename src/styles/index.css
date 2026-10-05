@@ -289,13 +289,19 @@ main,
   pointer-events: none;
 }
 
-/* A soft pool of shade under the words, whatever the ground does. */
-.scene-sticky::before {
+/*
+ * A soft pool of shade under the words, whatever the ground does. It belongs to the card,
+ * so it fades with it: on the scene's own box it was cut off by a hard line where one
+ * scene scrolled into the next.
+ */
+.scene-card::before {
   content: '';
   position: absolute;
-  inset: auto auto 0 0;
-  width: min(1200px, 100%);
-  height: 78%;
+  left: calc(-1 * var(--gutter));
+  bottom: calc(-1 * clamp(28px, 7vh, 80px));
+  z-index: -1;
+  width: min(1200px, 100vw);
+  height: 78svh;
   background: radial-gradient(62% 72% at 0% 100%, rgb(8 6 14 / 0.5), rgb(8 6 14 / 0.18) 55%, rgb(8 6 14 / 0) 78%);
   pointer-events: none;
 }
@@ -716,16 +722,59 @@ main,
 }
 
 .diagram-label {
-  fill: rgb(246 241 234 / 0.92);
   font: 500 10.5px var(--font-mono);
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
 
 .diagram-note {
-  fill: rgb(246 241 234 / 0.62);
   font: 400 10.5px var(--font-mono);
   letter-spacing: 0.04em;
+}
+
+/* The default colours give way to a colour set on the element itself (a CSS rule would beat it). */
+.diagram-label:not([fill]) {
+  fill: rgb(246 241 234 / 0.92);
+}
+
+.diagram-note:not([fill]) {
+  fill: rgb(246 241 234 / 0.62);
+}
+
+/* The career boards: big figures, mono for code and logs, a road sign's lettering. */
+.diagram-big {
+  font: 600 26px/1 var(--font-sans);
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.diagram-big-s {
+  font: 600 18px/1 var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+
+.diagram-mono {
+  font: 500 11.5px var(--font-mono);
+  letter-spacing: 0.02em;
+}
+
+.diagram-mono-s {
+  font: 400 9.5px var(--font-mono);
+}
+
+.diagram-sign {
+  fill: #f6f1ea;
+  font: 700 12px var(--font-sans);
+  letter-spacing: 0.04em;
+}
+
+.diagram-etch {
+  font: 600 11px var(--font-mono);
+}
+
+.diagram-tag {
+  font: 500 9px var(--font-mono);
+  letter-spacing: 0.02em;
 }
 
 .diagram-title {
@@ -1161,6 +1210,14 @@ main,
 }
 
 @media (max-width: 759px) {
+  /* On a phone the words run the full width, so the shade under them does too. */
+  .scene-card::before {
+    left: calc(-1 * var(--gutter));
+    width: 100vw;
+    height: 70svh;
+    background: linear-gradient(to top, rgb(8 6 14 / 0.62), rgb(8 6 14 / 0.34) 45%, rgb(8 6 14 / 0) 88%);
+  }
+
   /* A little tighter, so a column of labels fits beside a small stack. */
   .dive-label {
     padding: 4px 9px;

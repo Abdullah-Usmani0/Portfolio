@@ -32,6 +32,7 @@ export const ANCHOR_IDS = {
     'deadletter',
   ],
   learners: ['bridge'],
+  ascent: ['route', 'base', 'camp1', 'camp2', 'camp3', 'camp4', 'summit'],
   voice: ['stage'],
   mind: [
     // Where the camera looks, one per formation.

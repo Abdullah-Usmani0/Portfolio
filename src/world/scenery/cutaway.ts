@@ -114,7 +114,7 @@ export const cutGlsl = (buildings: number) => /* glsl */ `
 export function paletteMaterial(cut: { value: number[] }, slots: number) {
   const colors = Array.from({ length: slots }, () => new THREE.Color());
   const material = new THREE.ShaderMaterial({
-    uniforms: { uColors: { value: colors }, uCut: cut },
+    uniforms: { uColors: { value: colors }, uCut: cut, uOpacity: { value: 1 } },
     transparent: true,
     vertexShader: /* glsl */ `
       attribute float aSlot;
@@ -128,9 +128,10 @@ export function paletteMaterial(cut: { value: number[] }, slots: number) {
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
+      uniform float uOpacity;
       varying vec3 vColor;
       varying float vAlpha;
-      void main() { gl_FragColor = vec4(vColor, vAlpha); }`,
+      void main() { gl_FragColor = vec4(vColor, vAlpha * uOpacity); }`,
   });
   return { material, colors };
 }

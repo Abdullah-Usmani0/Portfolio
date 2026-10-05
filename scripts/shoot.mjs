@@ -43,7 +43,9 @@ const logs = [];
 page.on('console', (m) => (m.type() === 'error' || m.type() === 'warning') && logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
 
-await page.goto(`${url}${url.includes('?') ? '&' : '?'}test=1`, { waitUntil: 'load' });
+// --query a=1&b=2: extra URL parameters for the page (debug switches).
+const query = arg('query', '');
+await page.goto(`${url}${url.includes('?') ? '&' : '?'}test=1${query ? `&${query}` : ''}`, { waitUntil: 'load' });
 await page.waitForFunction(() => window.__site !== undefined, null, { timeout: 30_000 });
 await page.waitForTimeout(Number(arg('intro', '4200')));
 const tag = `${width}x${height}`;
@@ -56,6 +58,24 @@ for (const [i, id] of sections.entries()) {
   const name = join(out, `${tag}-${String(i + 1).padStart(2, '0')}-${id}.png`);
   await page.screenshot({ path: name });
   console.log(id, await page.evaluate(() => window.__site.look));
+}
+
+// --at 6.5,7.5: shoot the journey part-way between scenes (scene positions, 0 = the first).
+for (const at of arg('at', '').split(',').filter(Boolean).map(Number)) {
+  const ids = await page.evaluate(() => [...document.querySelectorAll('[data-scene]')].map((el) => el.id));
+  const yOf = async (id) => {
+    await page.evaluate((s) => window.__site.jump(s), id);
+    await page.waitForTimeout(300);
+    return page.evaluate(() => window.scrollY);
+  };
+  const a = Math.floor(at);
+  const b = Math.min(ids.length - 1, a + 1);
+  const ya = await yOf(ids[a]);
+  const yb = await yOf(ids[b]);
+  await page.evaluate((y) => window.scrollTo(0, y), ya + (yb - ya) * (at - a));
+  await page.waitForTimeout(Number(arg('settle', '1800')));
+  await page.screenshot({ path: join(out, `${tag}-at-${String(at).replace('.', '_')}.png`) });
+  console.log('at', at, await page.evaluate(() => window.__site.s.toFixed(3)));
 }
 
 // --dive a,b: open each scene's deep dive and shoot every step (or --steps 0,3,7).

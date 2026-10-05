@@ -4,7 +4,8 @@
  * design, like the rest of the copy: no internal names, URLs, IDs or costs. Each full dive
  * lives in its own file under ./dives; scenes still waiting for theirs step through their proofs.
  */
-import { ascent, chapters, index } from './site.ts';
+import { chapters } from './site.ts';
+import { career } from './dives/career.ts';
 import { context } from './dives/context.ts';
 import { councils } from './dives/councils.ts';
 import { scenarios } from './dives/scenarios.ts';
@@ -25,26 +26,6 @@ function proofDive(chapterId: string, focus: string): Dive {
   };
 }
 
-const careerDive: Dive = {
-  scene: ascent.id,
-  kicker: ascent.kicker,
-  steps: [
-    ...ascent.camps.map((c) => ({
-      id: c.org.toLowerCase().replace(/\W+/g, '-'),
-      title: `${c.camp}: ${c.org}`,
-      line: `${c.role} · ${c.dates}`,
-      points: [c.note],
-    })),
-    { id: 'projects', title: 'Projects', line: 'Things built along the way.', points: index.projects.map((p) => `${p.name} (${p.year}): ${p.text}`) },
-    {
-      id: 'recognition',
-      title: 'Recognition and certifications',
-      line: 'Awards, honours and courses.',
-      points: [...index.recognition, ...index.certifications].map((r) => `${r.name} (${r.year})`),
-    },
-  ],
-};
-
 export const DIVES: Readonly<Record<string, Dive>> = {
   npcs: proofDive('npcs', 'village'),
   councils,
@@ -52,7 +33,7 @@ export const DIVES: Readonly<Record<string, Dive>> = {
   learners: proofDive('learners', 'bridge'),
   voice: proofDive('voice', 'stage'),
   mind: context,
-  ascent: careerDive,
+  ascent: career,
 };
 
 /** The step index for a step id, or 0. */

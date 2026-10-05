@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { DIVES, stepIndex, type Dive as DiveData, type Label } from '@/content/dives.ts';
 import type { Side } from '@/content/dives/types.ts';
@@ -115,8 +115,9 @@ function Pins({ dive, active, card }: { dive: DiveData; active: string; card: Re
 }
 
 /** Words that ride on the world beside what they name, shown and hidden in time with it. */
-function Labels({ scene, labels, sheet }: { scene: string; labels: readonly Label[]; sheet: boolean }) {
+function Labels({ scene, labels: all, sheet }: { scene: string; labels: readonly Label[]; sheet: boolean }) {
   const refs = useRef<(HTMLSpanElement | null)[]>([]);
+  const labels = useMemo(() => (sheet ? all.filter((l) => !l.wide) : all), [all, sheet]);
   useEffect(() => {
     const sizes: { w: number; h: number }[] = [];
     // How clear each label's spot is, eased: where two would collide, the later one in the

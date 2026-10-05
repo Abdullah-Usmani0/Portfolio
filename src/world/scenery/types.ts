@@ -28,6 +28,11 @@ export interface Layer {
   py: number;
   /** Stays put when the camera slides to frame a set piece on a narrow screen (the foreground, which carries the text). */
   fixed?: boolean;
+  /**
+   * How much further it falls, per unit the camera climbs above the valley floor: ranges
+   * drop below the horizon as you gain height, faster the nearer they are.
+   */
+  sink?: number;
   update?: (f: Frame) => void;
   dispose?: () => void;
 }

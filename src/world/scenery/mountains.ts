@@ -13,6 +13,11 @@ export const HORIZON_Y = -148;
 // K2 itself barely moves, so it stays on the horizon for the whole journey; the valley
 // walls in front of it move more and give way to ranges drawn to match them.
 const PARALLAX = [0.012, 0.026, 0.04, 0.055, 0.07];
+/**
+ * How fast each band falls away as the camera climbs above the valley: by camp level the
+ * valley walls are under the clouds, and from the summit every range is below you.
+ */
+const SINK = [0.85, 0.66, 0.66, 0.85, 0.3];
 /** How far past the measured panorama each band is continued, in world units. */
 const CONTINUE = 3200;
 const DEPTH = [1, 0.86, 0.74, 0.63, 0.53];
@@ -54,6 +59,7 @@ export function mountains(): Layer[] {
       group,
       p: PARALLAX[i] ?? 0.1,
       py: PARALLAX[i] ?? 0.1,
+      sink: SINK[i] ?? 0.4,
       update: ({ look }) => {
         const base = tone(look, DEPTH[i] ?? 0.5);
         material.uniforms.uBottom.value.set(base);

@@ -14,7 +14,14 @@ export type Diagram =
   | 'review'
   | 'plain'
   | 'farmloops'
-  | 'machinery';
+  | 'machinery'
+  | 'honours'
+  | 'research'
+  | 'nlsql'
+  | 'logs'
+  | 'adlab'
+  | 'zero'
+  | 'kit';
 
 /** An interactive panel inside the step card. */
 export type Widget = 'context-lab';
@@ -39,6 +46,8 @@ export interface Label {
   dot?: string;
   /** The world shows and hides a label with this id in time with its animation. */
   id?: string;
+  /** Only on a wide screen: on a phone there is no room for it beside the pins. */
+  wide?: boolean;
 }
 
 export interface DiveStep {

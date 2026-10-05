@@ -50,6 +50,9 @@ describe('the copy stays conceptual', () => {
       /\b(sk-|AKIA|eyJ)[A-Za-z0-9]/,
       /\bzero_[a-z]/i,
       /\b(dev1|staging|prod)\b/i,
+      // No phone number, in any format.
+      /\+\d{1,3}[\s-]\d{2}[\s-]?\d{3}/,
+      /(?:\d[\s-]?){9,}/,
     ];
     for (const text of all) for (const re of banned) expect(text, `"${text}" matches ${re}`).not.toMatch(re);
   });

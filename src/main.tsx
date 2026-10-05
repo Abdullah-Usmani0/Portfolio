@@ -3,7 +3,7 @@ import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import { App } from './App.tsx';
 import { scroller } from './motion/SmoothScroll.tsx';
-import { closeDive, openDive, useDive, useDay } from './motion/store.ts';
+import { closeDive, openDive, progress, useDive, useDay } from './motion/store.ts';
 
 // A read-only hook for tests and screenshots: state, not pixels. Dev, ?debug or ?test only.
 const params = new URLSearchParams(window.location.search);
@@ -14,6 +14,8 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
       look: useDay.getState().label,
       dark: useDay.getState().dark,
       smooth: document.documentElement.classList.contains('lenis'),
+      /** Where the journey is: 0 = the first scene centred, 1 = the next, … */
+      s: progress.s,
       /** Open a scene's deep dive at a step, or close it. */
       dive: (scene: string | null, step = 0) => (scene ? openDive(scene, step) : closeDive()),
       diveState: () => useDive.getState(),

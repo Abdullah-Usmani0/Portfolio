@@ -31,7 +31,8 @@ function cloudTexture(seed: number): THREE.CanvasTexture {
     for (let i = 0; i < 22; i++) {
       const x = 80 + rnd() * 352;
       const y = 110 - Math.sin(((x - 80) / 352) * Math.PI) * 40 + rnd() * 24;
-      const r = 26 + rnd() * 46;
+      // Kept inside the canvas: a puff cut by its edge shows as a hard line across the sky.
+      const r = Math.min(26 + rnd() * 46, y - 3, c.height - 3 - y);
       const g = ctx.createRadialGradient(x, y, 0, x, y, r);
       g.addColorStop(0, 'rgba(255,255,255,0.55)');
       g.addColorStop(1, 'rgba(255,255,255,0)');

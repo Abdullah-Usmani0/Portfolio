@@ -10,14 +10,19 @@ export const shared = {
   uTime: { value: 0 },
 };
 
-/** A filled silhouette: `xs`/`ys` trace the top edge left to right; the fill runs down to `bottom`. */
-export function silhouette(xs: ArrayLike<number>, ys: ArrayLike<number>, bottom: number, sway?: ArrayLike<number>): THREE.BufferGeometry {
+/**
+ * A filled silhouette: `xs`/`ys` trace the top edge left to right; the fill runs down to
+ * `bottom`. `lift` raises the gradient with the ground (see `flatMaterial`'s `lift`).
+ */
+export function silhouette(xs: ArrayLike<number>, ys: ArrayLike<number>, bottom: number, sway?: ArrayLike<number>, lift?: ArrayLike<number>): THREE.BufferGeometry {
   const n = xs.length;
   const pos = new Float32Array(n * 2 * 3);
   const sw = new Float32Array(n * 2);
+  const lf = new Float32Array(n * 2);
   for (let i = 0; i < n; i++) {
     pos.set([xs[i]!, ys[i]!, 0, xs[i]!, bottom, 0], i * 6);
     sw[i * 2] = sway ? sway[i]! : 0;
+    lf[i * 2] = lf[i * 2 + 1] = lift ? lift[i]! : 0;
   }
   const index: number[] = [];
   for (let i = 0; i < n - 1; i++) {
@@ -27,6 +32,7 @@ export function silhouette(xs: ArrayLike<number>, ys: ArrayLike<number>, bottom:
   const g = new THREE.BufferGeometry();
   g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
   g.setAttribute('aSway', new THREE.BufferAttribute(sw, 1));
+  g.setAttribute('aLift', new THREE.BufferAttribute(lf, 1));
   g.setIndex(index);
   return g;
 }
@@ -42,8 +48,12 @@ export interface FlatUniforms {
   uTime: { value: number };
 }
 
-/** Vertical gradient from `uBottom` (at y ≤ uY0) to `uTop` (at y ≥ uY1), with optional sway. */
-export function flatMaterial(opts: { y0: number; y1: number; sway?: number; transparent?: boolean }): THREE.ShaderMaterial & {
+/**
+ * Vertical gradient from `uBottom` (at y ≤ uY0) to `uTop` (at y ≥ uY1), with optional sway.
+ * With `lift`, y is measured from each vertex's `aLift` instead of from zero, so ground that
+ * climbs keeps its gradient under its own edge.
+ */
+export function flatMaterial(opts: { y0: number; y1: number; sway?: number; transparent?: boolean; lift?: boolean }): THREE.ShaderMaterial & {
   uniforms: FlatUniforms;
 } {
   const uniforms: FlatUniforms = {
@@ -59,8 +69,10 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
     uniforms,
     transparent: opts.transparent ?? false,
     depthWrite: !opts.transparent,
+    defines: opts.lift ? { LIFT: '' } : {},
     vertexShader: /* glsl */ `
       attribute float aSway;
+      attribute float aLift;
       uniform float uTime;
       uniform float uSway;
       varying float vY;
@@ -68,7 +80,11 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
         vec3 p = position;
         float gust = sin(uTime * 0.9 + position.x * 0.004) * 0.6 + 0.4;
         p.x += aSway * uSway * gust * sin(uTime * 1.7 + position.x * 0.05);
+        #ifdef LIFT
+        vY = position.y - aLift;
+        #else
         vY = position.y;
+        #endif
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
       }`,
     fragmentShader: /* glsl */ `

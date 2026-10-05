@@ -4,7 +4,9 @@ import { shared } from './gl/flat.ts';
 import { createSky } from './gl/sky.ts';
 import { pointScale } from './gl/sprites.ts';
 import type { Shot } from './journey.ts';
+import { ascentFace } from './scenery/ascent.ts';
 import { birds, clouds, mist } from './scenery/atmosphere.ts';
+import { cloudSea } from './scenery/cloudSea.ts';
 import { foreground } from './scenery/foreground.ts';
 import { mountains } from './scenery/mountains.ts';
 import { forestLayer } from './scenery/ridges.ts';
@@ -87,6 +89,27 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
     mist({ p: 0.2, y0: -290, y1: -170, x0: -4000, x1: LAST_X * 0.2 + 4000, amount: 0.7 }),
     forestLayer({ seed: 47, x0: -3500, x1: LAST_X * 0.28 + 3500, baseY: -240, amp: 30, wave: 700, treeH: 40, treeW: 20, gap: 0.3, step: 2, p: 0.28, depth: 0.33, leaf: 0.45, sway: 1 }),
     mist({ p: 0.42, y0: -320, y1: -236, x0: -4000, x1: LAST_X * 0.42 + 4000, amount: 0.45 }),
+    // Above the valley: the far cloud sea with K2's neighbours standing out of it, K2's face
+    // with the camps, and a nearer deck of cloud around the face's foot.
+    cloudSea({
+      p: 0.3,
+      settle: 0.06,
+      x0: 3800,
+      x1: 8200,
+      top: -208,
+      size: 70,
+      near: 0,
+      seed: 5,
+      peaks: [
+        { x: 5150, h: 150, w: 170 },
+        { x: 5330, h: 96, w: 130 },
+        { x: 6560, h: 168, w: 210 },
+        { x: 6760, h: 120, w: 150 },
+        { x: 7020, h: 74, w: 120 },
+      ],
+    }),
+    ascentFace(),
+    cloudSea({ p: 0.5, settle: 0.06, x0: 7600, x1: 12000, top: -248, size: 92, near: 0.6, seed: 9 }),
     {
       ...valleyLayer,
       update: (f) => {
@@ -154,9 +177,10 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         dive: diving ? { scene: diving.scene, step: diving.step, t: diving.t } : null,
       };
       // Where each layer sits on the journey, before any dive.
+      const climb = Math.max(0, shot.y);
       const origin = (l: Layer) => ({
         x: camX - (l.fixed ? shot.x : camX) * l.p,
-        y: camY * (1 - l.py) - (l.fixed ? NARROW_DROP * narrow : 0),
+        y: camY * (1 - l.py) - (l.sink ?? 0) * climb - (l.fixed ? NARROW_DROP * narrow : 0),
       });
       const target = diving ? layers.find((l) => l.group === diving.group) : undefined;
       // How far the camera has slid, in the target layer's units, to bring the target to its aim.

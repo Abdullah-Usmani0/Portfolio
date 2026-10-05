@@ -2,27 +2,13 @@
  * The Context Engineering diagrams. Each runs on the same clock as the world's loop for its
  * step (see LOOPS), so a card lights the moment its part happens among the fireflies.
  */
-import { useEffect, useLayoutEffect, useRef } from 'react';
-import { gsap } from 'gsap';
+import { useRef } from 'react';
 import { FAILURES, LOOPS, failurePhase, loopTime } from '@/content/dives/context.ts';
 import { CONTEXT_LAYERS, LAYER_COLORS } from '@/sim/particles/bust.ts';
 import { anchorOf } from '@/world/anchors.ts';
 import { worldView } from '@/world/view.ts';
 import { AMBER, CREAM, LIME, RED } from './colors.ts';
-
-/** Calls `fn` every frame with the seconds since the diagram appeared. */
-function useClock(fn: (t: number) => void) {
-  const ref = useRef(fn);
-  useLayoutEffect(() => {
-    ref.current = fn;
-  });
-  useEffect(() => {
-    const start = performance.now();
-    const tick = () => ref.current((performance.now() - start) / 1000);
-    gsap.ticker.add(tick);
-    return () => gsap.ticker.remove(tick);
-  }, []);
-}
+import { useClock } from './svg.tsx';
 
 /** How much a model attends to each position: the start and the end, much more than the middle. */
 const attention = (k: number) => {

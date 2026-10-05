@@ -22,6 +22,9 @@ export interface Scene {
 
 const GAP = 2600;
 
+/** How high the camera has climbed at the last two scenes: camp level, then the summit. */
+export const CLIMB = { ascent: 700, summit: 1400 } as const;
+
 /**
  * Day, then night: the curriculum engine works in daylight (the council, the farm, the
  * proving grounds), then night falls on the characters (who they are, how their minds are
@@ -36,9 +39,46 @@ export const SCENES: readonly Scene[] = [
   { id: 'npcs', look: 'dusk', x: GAP * 4, y: 0, pan: 0 },
   { id: 'mind', look: 'night', x: GAP * 5, y: 0, pan: 484 },
   { id: 'voice', look: 'midnight', x: GAP * 6, y: 0, pan: 655 },
-  { id: 'ascent', look: 'lateNight', x: GAP * 7, y: 0, pan: 0 },
-  { id: 'summit', look: 'sunrise', x: GAP * 8, y: 0, pan: 0 },
+  { id: 'ascent', look: 'lateNight', x: GAP * 7, y: CLIMB.ascent, pan: 555 },
+  { id: 'summit', look: 'sunrise', x: GAP * 8, y: CLIMB.summit, pan: 0 },
 ];
+
+/**
+ * How high the camera is when it passes over world x: the scenes' heights joined by
+ * straight lines, which is the path the glide takes. Ground that follows it stays under the
+ * camera all the way up the mountain.
+ */
+export function trailY(x: number, scenes: readonly Scene[] = SCENES): number {
+  const first = scenes[0]!;
+  const last = scenes.at(-1)!;
+  if (x <= first.x) return first.y;
+  if (x >= last.x) return last.y;
+  const i = scenes.findIndex((s) => s.x > x) - 1;
+  const a = scenes[i]!;
+  const b = scenes[i + 1]!;
+  return a.y + ((b.y - a.y) * (x - a.x)) / (b.x - a.x);
+}
+
+/** How far either side of a scene the ground holds that scene's height. */
+export const PLATEAU = 900;
+
+/**
+ * How high the ground stands at world x: level for a screen's width around each scene, so
+ * the words always sit on the same dark ground, and a steep climb in between where the
+ * scenes differ in height. The camera glides along `trailY`; this is the mountain under it.
+ */
+export function groundRise(x: number, scenes: readonly Scene[] = SCENES): number {
+  const first = scenes[0]!;
+  const last = scenes.at(-1)!;
+  if (x <= first.x) return first.y;
+  if (x >= last.x) return last.y;
+  const i = scenes.findIndex((s) => s.x > x) - 1;
+  const a = scenes[i]!;
+  const b = scenes[i + 1]!;
+  if (a.y === b.y) return a.y;
+  const t = Math.min(1, Math.max(0, (x - a.x - PLATEAU) / (b.x - a.x - 2 * PLATEAU)));
+  return a.y + (b.y - a.y) * t * t * (3 - 2 * t);
+}
 
 /** Where a scene sits in the journey, by id. */
 export const sceneIndex = (id: string) => SCENES.findIndex((s) => s.id === id);
