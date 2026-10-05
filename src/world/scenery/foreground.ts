@@ -35,6 +35,7 @@ export function foreground(): Layer {
     group,
     p: 1,
     py: 1,
+    fixed: true,
     update: ({ look }) => {
       const base = tone(look, 0.05, 0.3);
       material.uniforms.uTop.value.set(mixHex(base, look.haze, 0.08));

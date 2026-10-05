@@ -14,8 +14,11 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
       look: useDay.getState().label,
       dark: useDay.getState().dark,
       smooth: document.documentElement.classList.contains('lenis'),
-      /** Jump straight to a section (by id) without the glide. */
-      jump: (id: string) => scroller.lenis?.scrollTo(`#${id}`, { immediate: true, force: true }),
+      /** Jump straight to a section (by id), its middle in the middle of the screen. */
+      jump: (id: string) => {
+        const el = document.getElementById(id);
+        if (el) scroller.lenis?.scrollTo(el, { offset: (el.offsetHeight - window.innerHeight) / 2, immediate: true, force: true });
+      },
     }),
   });
 }

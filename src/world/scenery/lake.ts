@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { shared } from '../gl/flat.ts';
-import { pointScale } from '../gl/sprites.ts';
+import { peopleMaterial, pointScale } from '../gl/sprites.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
 import { LAKE_X, riverBottom, riverTop } from './valley.ts';
@@ -36,35 +36,64 @@ function screenMaterial() {
 }
 
 /**
- * Dusk at the lake, the realtime-voice scene: an amphitheatre on the far shore with a big
- * screen speaking, two boats racing to the first spoken sentence (the old pipeline at
+ * Dusk at the lake, the realtime-voice scene: an open-air stage on the far shore with a big
+ * screen speaking to an audience, two boats racing to the first spoken sentence (the old pipeline at
  * 5.4 s, the streamed one at 2.1 s), and lanterns lighting one by one on the water.
  */
 export function lake(group: THREE.Group) {
   const cx = LAKE_X;
   const shore = (x: number) => riverTop(x) + 1;
 
-  // The amphitheatre: tiers of seating stepping up the far shore, the screen above them.
+  // The stage: a stepped stone plinth carrying the screen, and an audience on the shore
+  // in front of it, watching it speak.
   const stone = new THREE.MeshBasicMaterial();
   const stoneShade = new THREE.MeshBasicMaterial();
   const ax = cx + 180;
-  for (let k = 0; k < 5; k++) {
-    const w = 300 - k * 48;
-    const tier = new THREE.Mesh(new THREE.PlaneGeometry(w, 9), k % 2 ? stoneShade : stone);
-    tier.position.set(ax, shore(ax) + 4.5 + k * 9, 0.44);
-    group.add(tier);
-  }
+  let top = shore(ax) - 2;
+  [300, 236, 176].forEach((w, k) => {
+    const face = new THREE.Mesh(new THREE.PlaneGeometry(w, 11), stoneShade);
+    face.position.set(ax, top + 5.5, 0.44 + k * 0.002);
+    const tread = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.5), stone);
+    tread.position.set(ax, top + 9.75, 0.441 + k * 0.002);
+    group.add(face, tread);
+    top += 11;
+  });
   const screen = screenMaterial();
+  const screenY = top + 14 + 49;
   const frame = new THREE.Mesh(new THREE.PlaneGeometry(172, 98), stoneShade);
-  frame.position.set(ax, shore(ax) + 45 + 60, 0.44);
+  frame.position.set(ax, screenY, 0.45);
   const display = new THREE.Mesh(new THREE.PlaneGeometry(160, 86), screen.material);
-  display.position.set(ax, shore(ax) + 45 + 60, 0.45);
-  const legs = [-60, 60].map((dx) => {
-    const leg = new THREE.Mesh(new THREE.PlaneGeometry(6, 60), stoneShade);
-    leg.position.set(ax + dx, shore(ax) + 45 + 3, 0.43);
+  display.position.set(ax, screenY, 0.451);
+  const legs = [-58, 58].map((dx) => {
+    const leg = new THREE.Mesh(new THREE.PlaneGeometry(7, 16), stoneShade);
+    leg.position.set(ax + dx, top + 7, 0.449);
     return leg;
   });
   group.add(frame, display, ...legs);
+
+  const audience = 14;
+  const seated = peopleMaterial();
+  seated.uniforms.uMix.value = 0.5;
+  const seatGeo = new THREE.PlaneGeometry(17, 38);
+  seatGeo.translate(0, 19, 0);
+  const seatColors = new Float32Array(audience * 3);
+  const palette = ['#7fb2e8', '#f0a35e', '#b892e0', '#8cc77a', '#e8c95a', '#e88c7f'];
+  for (let i = 0; i < audience; i++) {
+    const c = new THREE.Color(palette[i % palette.length]);
+    seatColors.set([c.r, c.g, c.b], i * 3);
+  }
+  seatGeo.setAttribute('aColor', new THREE.InstancedBufferAttribute(seatColors, 3));
+  seatGeo.setAttribute('aWalk', new THREE.InstancedBufferAttribute(new Float32Array(audience), 1));
+  const crowd = new THREE.InstancedMesh(seatGeo, seated.material, audience);
+  const seat = new THREE.Matrix4();
+  for (let i = 0; i < audience; i++) {
+    const x = ax - 156 + (i / (audience - 1)) * 312 + Math.sin(i * 7.3) * 6;
+    seat.makeScale(1, 0.62 + 0.06 * Math.sin(i * 3.1), 1).setPosition(x, shore(x) - 2, 0);
+    crowd.setMatrixAt(i, seat);
+  }
+  crowd.position.z = 0.46;
+  crowd.frustumCulled = false;
+  group.add(crowd);
 
   // The race: two boats, a sail each; the lime one is the streamed pipeline.
   const hull = new THREE.MeshBasicMaterial();
@@ -134,10 +163,11 @@ export function lake(group: THREE.Group) {
   return (f: Frame) => {
     const { look } = f;
     const base = tone(look, 0.2, 0.1);
-    stone.color.set(mixHex(base, '#e9dfcf', 0.55));
-    stoneShade.color.set(mixHex(base, '#8f8478', 0.45));
+    stone.color.set(mixHex(base, '#efe6d8', 0.62));
+    stoneShade.color.set(mixHex(base, '#a39684', 0.5));
     hull.color.set(mixHex(base, '#6b4a33', 0.6));
     screen.uniforms.uBg.value.set(mixHex(base, '#0f1320', 0.85));
+    seated.uniforms.uShade.value.set(tone(look, 0.1));
     screen.uniforms.uBar.value.set(mixHex('#7fe8ff', '#c6ff3d', 0.35));
     lanternUniforms.uOn.value = Math.min(1, look.windows * 1.2);
 

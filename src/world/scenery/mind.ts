@@ -84,8 +84,8 @@ export function mind(maxPoints: number): Layer {
     uGather: { value: 0 },
     uMorph: { value: 0 },
     uScale: pointScale,
-    uSize: { value: 3.2 },
-    uIntensity: { value: 1.6 },
+    uSize: { value: 2.6 },
+    uIntensity: { value: 0.85 },
     uOn: { value: 0 },
     uLayerColors: { value: LAYER_COLORS.map((c) => new THREE.Color(c)) },
   };
@@ -100,7 +100,7 @@ export function mind(maxPoints: number): Layer {
       // The bust is about 1 tall from its base; the stack and the swarm are laid out to match.
       const stack = stackTargets(t.layer, t.rand, 1.05);
       for (let i = 0; i < t.count; i++) {
-        stack[i * 3] = stack[i * 3]! * 1.5 + 0.9;
+        stack[i * 3] = stack[i * 3]! * 1.5;
         stack[i * 3 + 1] = stack[i * 3 + 1]! * 1.0 - 0.02;
       }
       const swarm = t.swarm;
@@ -136,11 +136,12 @@ export function mind(maxPoints: number): Layer {
     p: P,
     py: P,
     update: (f: Frame) => {
-      // Fireflies only show after dark, and only gather while the mind's scene is near.
-      uniforms.uOn.value = f.look.stars;
-      const near = 1 - Math.min(1, Math.abs(f.s - MIND_SCENE) / 0.8);
+      // Fireflies only show after dark and near the mind's scene, and gather as it arrives.
+      const away = Math.abs(f.s - MIND_SCENE);
+      uniforms.uOn.value = f.look.stars * (1 - smootherstep((away - 0.45) / 0.45));
+      const near = 1 - Math.min(1, away / 0.8);
       uniforms.uGather.value = smootherstep(near * 1.4 - 0.2);
-      const settled = near > 0.85;
+      const settled = near > 0.55;
       if (settled && arrivedAt < 0) arrivedAt = f.time;
       if (!settled) arrivedAt = -1;
       // Attract loop: admire the head, pour into the blocks, hold, gather again.

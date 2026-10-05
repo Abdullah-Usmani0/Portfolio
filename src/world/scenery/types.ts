@@ -21,6 +21,8 @@ export interface Layer {
   group: THREE.Group;
   p: number;
   py: number;
+  /** Stays put when the camera slides to frame a set piece on a narrow screen (the foreground, which carries the text). */
+  fixed?: boolean;
   update?: (f: Frame) => void;
   dispose?: () => void;
 }

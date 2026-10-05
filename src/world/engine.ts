@@ -19,6 +19,8 @@ import { village } from './scenery/village.ts';
 /** The view is this many world units tall on a landscape screen; portrait screens see more. */
 const VIEW_H = 1000;
 const LAST_X = 22000;
+/** On a phone the foreground sinks this far, so the set piece shows above it. */
+const NARROW_DROP = 70;
 
 export interface World {
   resize: (width: number, height: number) => void;
@@ -82,6 +84,8 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
 
   let viewW = VIEW_H;
   let viewH = VIEW_H;
+  /** 0 on landscape screens, 1 on a phone held upright. */
+  let narrow = 0;
 
   return {
     resize(width, height) {
@@ -89,6 +93,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       const aspect = width / Math.max(1, height);
       viewH = aspect >= 1.2 ? VIEW_H : VIEW_H * Math.sqrt(1.2 / aspect);
       viewW = viewH * aspect;
+      narrow = Math.min(1, Math.max(0, (1.2 - aspect) / 0.6));
       camera.left = -viewW / 2;
       camera.right = viewW / 2;
       camera.top = viewH / 2;
@@ -101,12 +106,15 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       shared.uTime.value = time;
       // Portrait screens see more sky and ground; keep the horizon a little above centre.
       const camY = shot.y - (viewH - VIEW_H) * 0.18;
-      camera.position.x = shot.x;
+      // On a narrow screen the camera slides to frame the set piece; the foreground under
+      // the text stays where it is.
+      const camX = shot.x + shot.pan * narrow;
+      camera.position.x = camX;
       camera.position.y = camY;
-      const frame: Frame = { look: shot.look, time, dt, camX: shot.x, camY, s: shot.s };
+      const frame: Frame = { look: shot.look, time, dt, camX, camY, s: shot.s };
       for (const l of layers) {
-        l.group.position.x = shot.x * (1 - l.p);
-        l.group.position.y = camY * (1 - l.py);
+        l.group.position.x = camX - (l.fixed ? shot.x : camX) * l.p;
+        l.group.position.y = camY * (1 - l.py) - (l.fixed ? NARROW_DROP * narrow : 0);
         l.update?.(frame);
       }
       const { look } = shot;

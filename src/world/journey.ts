@@ -13,20 +13,25 @@ export interface Scene {
   /** Camera position in foreground units. */
   x: number;
   y: number;
+  /**
+   * How far the camera slides right on a narrow screen, so the scene's set piece sits in
+   * the middle instead of off the right edge (its offset from the scene ÷ its layer's p).
+   */
+  pan: number;
 }
 
 const GAP = 2600;
 
 export const SCENES: readonly Scene[] = [
-  { id: 'top', look: 'dawn', x: 0, y: 0 },
-  { id: 'npcs', look: 'morning', x: GAP, y: 0 },
-  { id: 'councils', look: 'day', x: GAP * 2, y: 0 },
-  { id: 'scenarios', look: 'afternoon', x: GAP * 3, y: 0 },
-  { id: 'learners', look: 'golden', x: GAP * 4, y: 0 },
-  { id: 'voice', look: 'dusk', x: GAP * 5, y: 0 },
-  { id: 'mind', look: 'night', x: GAP * 6, y: 0 },
-  { id: 'ascent', look: 'lateNight', x: GAP * 7, y: 0 },
-  { id: 'summit', look: 'sunrise', x: GAP * 8, y: 0 },
+  { id: 'top', look: 'dawn', x: 0, y: 0, pan: 745 },
+  { id: 'npcs', look: 'morning', x: GAP, y: 0, pan: 0 },
+  { id: 'councils', look: 'day', x: GAP * 2, y: 0, pan: 600 },
+  { id: 'scenarios', look: 'afternoon', x: GAP * 3, y: 0, pan: 545 },
+  { id: 'learners', look: 'golden', x: GAP * 4, y: 0, pan: 636 },
+  { id: 'voice', look: 'dusk', x: GAP * 5, y: 0, pan: 655 },
+  { id: 'mind', look: 'night', x: GAP * 6, y: 0, pan: 484 },
+  { id: 'ascent', look: 'lateNight', x: GAP * 7, y: 0, pan: 0 },
+  { id: 'summit', look: 'sunrise', x: GAP * 8, y: 0, pan: 0 },
 ];
 
 export const sceneX = (id: string) => SCENES.find((s) => s.id === id)?.x ?? 0;
@@ -34,6 +39,8 @@ export const sceneX = (id: string) => SCENES.find((s) => s.id === id)?.x ?? 0;
 export interface Shot {
   x: number;
   y: number;
+  /** The narrow-screen slide at this point of the journey (see `Scene.pan`). */
+  pan: number;
   look: WorldLook;
   /** Index of the nearest scene. */
   scene: number;
@@ -52,6 +59,7 @@ export function shotAt(s: number, scenes: readonly Scene[] = SCENES): Shot {
   return {
     x: a.x + (b.x - a.x) * k,
     y: a.y + (b.y - a.y) * k,
+    pan: a.pan + (b.pan - a.pan) * k,
     look: lookAt(
       scenes.map((sc) => WORLD_LOOKS[sc.look]),
       pos,

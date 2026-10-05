@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
+import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
-import { bandGeometry, waterfallMaterial } from '../gl/water.ts';
+import { bandGeometry, mistMaterial, waterfallMaterial } from '../gl/water.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
 import { riverTop } from './valley.ts';
@@ -10,19 +11,19 @@ import { onValley } from './village.ts';
 /** A round badge with a glyph, painted once; the owl raises one over its head. */
 function badge(glyph: string, color: string): THREE.CanvasTexture {
   const c = document.createElement('canvas');
-  c.width = 96;
-  c.height = 96;
+  c.width = 128;
+  c.height = 128;
   const ctx = c.getContext('2d');
   if (ctx) {
     ctx.fillStyle = color;
     ctx.beginPath();
-    ctx.arc(48, 48, 44, 0, Math.PI * 2);
+    ctx.arc(64, 64, 58, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillStyle = '#16131c';
-    ctx.font = '700 56px system-ui, sans-serif';
+    ctx.font = '700 76px system-ui, sans-serif';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText(glyph, 48, 52);
+    ctx.fillText(glyph, 64, 70);
   }
   const t = new THREE.CanvasTexture(c);
   t.colorSpace = THREE.NoColorSpace;
@@ -32,68 +33,142 @@ function badge(glyph: string, color: string): THREE.CanvasTexture {
 /** The five learner personas, each in its own scarf colour. */
 const PERSONAS = ['#7fb2e8', '#f0a35e', '#b892e0', '#8cc77a', '#e8c95a'];
 
+/** The set piece is drawn closer than the village, so it reads at a glance. */
+const SCALE = 1.8;
+const smooth = (a: number, b: number, x: number) => {
+  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
+  return t * t * (3 - 2 * t);
+};
+
 /**
- * The proving grounds: simulated learners walk the trail to a bridge with planks missing.
- * The first one stumbles, the owl flags it, the bridge is mended and they all cross. A cohort
- * finds the broken step so a real learner never has to.
+ * The proving grounds: simulated learners walk the trail to a bridge over a gorge with
+ * planks missing. The first one stumbles, the owl flags it, the bridge is mended and they
+ * all cross. A cohort finds the broken step so a real learner never has to.
  */
 export function provingGrounds(group: THREE.Group) {
   const cx = onValley('learners', 330);
   const bx = cx + 40;
-  const deckY = riverTop(bx) + 16;
+  const span = 96 * SCALE;
+  const left = bx - span / 2;
+  const right = bx + span / 2;
+  const deckY = riverTop(bx) + 30 * SCALE;
+  const ramp = 150;
 
-  // A small cascade coming down the bank under the bridge.
+  // The trail climbs to the abutments, crosses the deck, and comes back down.
+  const deck = (x: number) => deckY + Math.sin(Math.PI * ((x - left) / span)) * 7 * SCALE;
+  const trail = (x: number) => {
+    if (x > left && x < right) return deck(x) + 2;
+    const lift = x <= left ? smooth(left - ramp, left, x) : 1 - smooth(right, right + ramp, x);
+    return riverTop(x) + 1 + (deckY - riverTop(x) - 1) * lift;
+  };
+
+  // The gorge: a dark back wall with the cascade pouring through it, framed by two rocky
+  // shoulders the trail runs over.
+  const rough = fbm(57, 3);
+  const rock = flatMaterial({ y0: riverTop(bx) - 10, y1: deckY + 40 });
+  const backWall = flatMaterial({ y0: riverTop(bx) - 10, y1: deckY + 70 });
+  const wallTop = (x: number) => deckY + 50 + 18 * rough(x / 40) - 34 * Math.exp(-(((x - bx) / 36) ** 2));
+  const wallXs: number[] = [];
+  const wallYs: number[] = [];
+  for (let x = left - 20; x <= right + 20; x += 6) {
+    wallXs.push(x);
+    wallYs.push(wallTop(x));
+  }
+  const wall = new THREE.Mesh(silhouette(wallXs, wallYs, riverTop(bx) - 4), backWall);
+  wall.position.z = 0.4;
+  group.add(wall);
+
   const cascade = waterfallMaterial();
-  const top = riverTop(bx) + 74;
-  const cascadeMesh = new THREE.Mesh(bandGeometry([bx - 14, bx + 14], [top, top], [riverTop(bx) - 4, riverTop(bx) - 4]), cascade.material);
-  const uv = cascadeMesh.geometry.getAttribute('uv') as THREE.BufferAttribute;
-  uv.set([0, 0, 0, 1, 1, 0, 1, 1]);
-  cascadeMesh.position.z = 0.42;
+  const fallTop = wallTop(bx) - 3;
+  const fallBottom = riverTop(bx) - 6;
+  const cascadeMesh = new THREE.Mesh(bandGeometry([bx - 30, bx + 30], [fallTop, fallTop], [fallBottom, fallBottom]), cascade.material);
+  (cascadeMesh.geometry.getAttribute('uv') as THREE.BufferAttribute).set([0, 0, 0, 1, 1, 0, 1, 1]);
+  cascadeMesh.position.z = 0.41;
   group.add(cascadeMesh);
+
+  for (const side of [-1, 1]) {
+    const xs: number[] = [];
+    const ys: number[] = [];
+    const outer = side < 0 ? left - ramp - 30 : right + ramp + 30;
+    const inner = side < 0 ? bx - 26 : bx + 26;
+    const from = Math.min(outer, inner);
+    const to = Math.max(outer, inner);
+    for (let x = from; x <= to; x += 4) {
+      // The shoulder follows the trail, then falls away in a cliff face to the cascade.
+      const toCliff = side < 0 ? smooth(inner - 34, inner, x) : 1 - smooth(inner, inner + 34, x);
+      const ground = trail(Math.min(Math.max(x, from), to)) - 3 + 3 * rough(x / 18);
+      xs.push(x);
+      ys.push(ground - toCliff * (deckY - riverTop(x) + 6));
+    }
+    const shoulder = new THREE.Mesh(silhouette(xs, ys, riverTop(bx) - 4), rock);
+    shoulder.position.z = 0.46;
+    group.add(shoulder);
+  }
+
+  const spray = mistMaterial([bx - 120, bx + 120]);
+  const sprayMesh = new THREE.Mesh(bandGeometry([bx - 120, bx + 120], [fallBottom + 46, fallBottom + 46], [fallBottom - 14, fallBottom - 14]), spray.material);
+  sprayMesh.position.z = 0.47;
+  group.add(sprayMesh);
 
   // The bridge: planks on a gentle arch, the middle two missing until it is mended.
   const wood = new THREE.MeshBasicMaterial();
   const planks: THREE.Mesh[] = [];
-  const span = 96;
   for (let k = 0; k < 8; k++) {
     const t = (k + 0.5) / 8;
-    const px = bx - span / 2 + t * span;
-    const py = deckY + Math.sin(Math.PI * t) * 7;
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(span / 8 - 1.5, 4), wood);
-    m.position.set(px, py, 0.5);
+    const px = left + t * span;
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(span / 8 - 2, 4 * SCALE), wood);
+    m.position.set(px, deck(px), 0.5);
     m.rotation.z = Math.cos(Math.PI * t) * 0.18;
     group.add(m);
     planks.push(m);
   }
   for (const side of [-1, 1]) {
-    const post = new THREE.Mesh(new THREE.PlaneGeometry(3, 18), wood);
-    post.position.set(bx + (side * span) / 2, deckY + 8, 0.5);
+    const post = new THREE.Mesh(new THREE.PlaneGeometry(3 * SCALE, 20 * SCALE), wood);
+    post.position.set(bx + (side * span) / 2, deckY + 8 * SCALE, 0.5);
     group.add(post);
   }
-  const rail = new THREE.Mesh(new THREE.PlaneGeometry(span, 2), wood);
-  rail.position.set(bx, deckY + 16, 0.5);
+  // A hand rail following the arch, with balusters down to the deck.
+  const railXs = Array.from({ length: 25 }, (_, i) => left + (i / 24) * span);
+  const rail = new THREE.Mesh(
+    bandGeometry(
+      railXs,
+      railXs.map((x) => deck(x) + 17 * SCALE),
+      railXs.map((x) => deck(x) + 14.5 * SCALE),
+    ),
+    wood,
+  );
+  rail.position.z = 0.5;
   group.add(rail);
+  for (let k = 1; k < 8; k++) {
+    const x = left + (k / 8) * span;
+    const baluster = new THREE.Mesh(new THREE.PlaneGeometry(1.6 * SCALE, 15 * SCALE), wood);
+    baluster.position.set(x, deck(x) + 8.5 * SCALE, 0.5);
+    group.add(baluster);
+  }
 
   // Stage markers along the trail.
   const flagMat = new THREE.MeshBasicMaterial();
-  for (const [k, dx] of [-460, -280, 300, 470].entries()) {
+  for (const dx of [-470, -300, 330, 480]) {
     const x = cx + dx;
-    const y = riverTop(x) + 1;
-    const post = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 34), wood);
-    post.position.set(x, y + 17, 0.48);
-    const flag = new THREE.Mesh(new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(16, -5), new THREE.Vector2(0, -10)])), flagMat);
-    flag.position.set(x + 1, y + 34, 0.49);
-    flag.userData.phase = k;
+    const y = trail(x);
+    const post = new THREE.Mesh(new THREE.PlaneGeometry(2.5 * SCALE, 34 * SCALE), wood);
+    post.position.set(x, y + 17 * SCALE, 0.48);
+    const flag = new THREE.Mesh(
+      new THREE.ShapeGeometry(new THREE.Shape([new THREE.Vector2(0, 0), new THREE.Vector2(16, -5), new THREE.Vector2(0, -10)])).scale(SCALE, SCALE, 1),
+      flagMat,
+    );
+    flag.position.set(x + SCALE, y + 34 * SCALE, 0.49);
     group.add(post, flag);
   }
 
   // The owl on its post: it watches every stage and raises a flag when one breaks.
-  const owlX = bx - 92;
-  const owlY = riverTop(owlX) + 1;
+  const owlX = left - 70;
+  const owlY = trail(owlX);
   const owlBody = new THREE.MeshBasicMaterial();
   const owlFace = new THREE.MeshBasicMaterial();
   const owl = new THREE.Group();
   owl.position.set(owlX, owlY, 0.5);
+  owl.scale.setScalar(SCALE);
   const owlPost = new THREE.Mesh(new THREE.PlaneGeometry(4, 40), wood);
   owlPost.position.set(0, 20, 0);
   const body = new THREE.Mesh(new THREE.CircleGeometry(11, 20), owlBody);
@@ -119,15 +194,17 @@ export function provingGrounds(group: THREE.Group) {
   const flagTex = badge('!', '#ffb547');
   const okTex = badge('✓', '#b9ef2e');
   const signalMat = new THREE.MeshBasicMaterial({ map: flagTex, transparent: true, depthWrite: false });
-  const signal = new THREE.Mesh(new THREE.PlaneGeometry(22, 22), signalMat);
-  signal.position.set(owlX, owlY + 100, 0.6);
+  const signalSize = 24 * SCALE;
+  const signal = new THREE.Mesh(new THREE.PlaneGeometry(signalSize, signalSize), signalMat);
+  const signalY = owlY + 104 * SCALE;
+  signal.position.set(owlX, signalY, 0.6);
   group.add(signal);
 
   // The cohort.
   const count = PERSONAS.length;
   const people = peopleMaterial();
-  const geo = new THREE.PlaneGeometry(12, 27);
-  geo.translate(0, 13.5, 0);
+  const geo = new THREE.PlaneGeometry(12 * SCALE, 27 * SCALE);
+  geo.translate(0, 13.5 * SCALE, 0);
   const colors = new Float32Array(count * 3);
   PERSONAS.forEach((hex, i) => {
     const c = new THREE.Color(hex);
@@ -142,16 +219,13 @@ export function provingGrounds(group: THREE.Group) {
   group.add(crowd);
   const m = new THREE.Matrix4();
 
-  const PERIOD = 27;
-  const SPEED = 58;
-  const START = cx - 640;
-  const GAP = bx - 12;
+  const PERIOD = 26;
+  const SPEED = 74;
+  const SPACING = 30 * SCALE;
+  const START = cx - 700;
+  const GAP = bx - 0.18 * span;
   const ARRIVE = (GAP - START) / SPEED;
   const FIXED = ARRIVE + 3.4;
-  const deck = (x: number) => {
-    const t = (x - (bx - span / 2)) / span;
-    return t > 0 && t < 1 ? deckY + Math.sin(Math.PI * t) * 7 + 2 : riverTop(x) + 1;
-  };
 
   return (f: Frame) => {
     const { look } = f;
@@ -160,8 +234,15 @@ export function provingGrounds(group: THREE.Group) {
     flagMat.color.set(mixHex(base, '#e8c95a', 0.7));
     owlBody.color.set(mixHex(base, '#8a6a4f', 0.55));
     owlFace.color.set(mixHex('#fff3c4', '#ffd36b', look.windows));
+    const stone = tone(look, 0.22, 0.25);
+    rock.uniforms.uTop.value.set(mixHex(stone, look.haze, 0.12));
+    rock.uniforms.uBottom.value.set(mixHex(stone, look.shade, 0.4));
+    backWall.uniforms.uTop.value.set(mixHex(stone, look.shade, 0.45));
+    backWall.uniforms.uBottom.value.set(mixHex(stone, look.shade, 0.7));
     cascade.uniforms.uWater.value.set(mixHex(look.water, look.skyHorizon, 0.4));
     cascade.uniforms.uLight.value.set(mixHex(look.snow, '#ffffff', 0.4));
+    spray.uniforms.uColor.value.set(mixHex(look.snow, look.skyHorizon, 0.3));
+    spray.uniforms.uAmount.value = 0.6;
     people.uniforms.uShade.value.set(tone(look, 0.1));
 
     const T = f.time % PERIOD;
@@ -174,24 +255,24 @@ export function provingGrounds(group: THREE.Group) {
     const mended = !broken && T < FIXED + 3;
     signal.visible = flagged || mended;
     signalMat.map = flagged ? flagTex : okTex;
-    signal.position.y = owlY + 100 + Math.sin(f.time * 3) * 2;
+    const pop = flagged ? Math.min(1, (T - ARRIVE) * 4) : mended ? Math.min(1, (T - FIXED) * 4) : 0;
+    signal.scale.setScalar(0.6 + 0.4 * pop);
+    signal.position.y = signalY + Math.sin(f.time * 3) * 2;
     eyes.forEach((e) => (e.scale.y = Math.sin(f.time * 1.7) > 0.97 ? 0.15 : 1));
 
     for (let i = 0; i < count; i++) {
-      let x = START - i * 64 + T * SPEED;
+      let x = START - i * SPACING + T * SPEED;
       let crouch = 1;
-      if (broken) {
-        const stop = GAP - i * 18;
-        if (x > stop) {
-          x = stop;
-          // The first to arrive stumbles at the edge, then waits with the others.
-          if (i === 0) crouch = T - ARRIVE < 1.4 ? 0.72 + 0.28 * Math.abs(Math.sin((T - ARRIVE) * 6)) : 0.92;
-        }
+      const stop = GAP - i * SPACING;
+      const waiting = broken && x > stop;
+      if (waiting) {
+        x = stop;
+        // The first to arrive stumbles at the edge, then waits with the others.
+        if (i === 0) crouch = T - ARRIVE < 1.4 ? 0.72 + 0.28 * Math.abs(Math.sin((T - ARRIVE) * 6)) : 0.92;
       }
-      const moving = !broken || x < GAP - i * 18;
-      walk[i] = moving ? f.time * 9 + i : 0;
-      const visible = x > cx - 900 && x < cx + 660;
-      const y = deck(x) + (moving ? Math.abs(Math.sin(f.time * 9 + i)) * 0.8 : 0);
+      walk[i] = waiting ? 0 : f.time * 7 + i;
+      const visible = x > cx - 900 && x < cx + 700;
+      const y = trail(x) + (waiting ? 0 : Math.abs(Math.sin(f.time * 7 + i)) * 1.2);
       m.makeScale(visible ? 1 : 0, visible ? crouch : 0, 1).setPosition(x, y, 0);
       crowd.setMatrixAt(i, m);
     }

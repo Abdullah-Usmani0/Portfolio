@@ -32,6 +32,16 @@ describe('shotAt', () => {
     }
   });
 
+  it('holds each narrow-screen pan at its scene and glides it between', () => {
+    SCENES.forEach((scene, i) => expect(shotAt(i).pan).toBe(scene.pan));
+    let prev = shotAt(0).pan;
+    for (let s = 0.01; s <= SCENES.length - 1; s += 0.01) {
+      const pan = shotAt(s).pan;
+      expect(Math.abs(pan - prev)).toBeLessThan(40);
+      prev = pan;
+    }
+  });
+
   it('clamps outside the journey', () => {
     expect(shotAt(-2).x).toBe(SCENES[0]!.x);
     expect(shotAt(99).x).toBe(SCENES.at(-1)!.x);

@@ -15,7 +15,7 @@ export default function World() {
     let world: WorldApi;
     try {
       const small = window.matchMedia('(max-width: 700px)').matches;
-      world = createWorld(el, small ? 1.5 : 2, small ? 14000 : 32000);
+      world = createWorld(el, small ? 1.5 : 2, small ? 14000 : 24000);
     } catch {
       document.documentElement.dataset.world = 'off';
       return;
