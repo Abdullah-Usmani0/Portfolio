@@ -16,6 +16,12 @@ export default tseslint.config(
     },
   },
   {
+    // R3F mutates three.js objects every frame inside useFrame — outside React's render, by
+    // design — which the compiler's immutability rule cannot tell apart from render mutation.
+    files: ['src/stage/**/*.tsx'],
+    rules: { 'react-hooks/immutability': 'off' },
+  },
+  {
     // The simulation layer is pure and clean-room: no rendering, motion or DOM libraries.
     files: ['src/sim/**/*.ts'],
     rules: {

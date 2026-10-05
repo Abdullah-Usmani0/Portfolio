@@ -82,6 +82,33 @@ body {
   animation: settle var(--dur-panel) var(--ease-zv-out) both;
 }
 
+/* Scroll reveals: the same leaf-on-water settle, driven by an IntersectionObserver. */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  filter: blur(6px);
+  transition:
+    opacity 900ms var(--ease-zv-out),
+    transform 900ms var(--ease-zv-out),
+    filter 900ms var(--ease-zv-out);
+}
+
+.reveal-in {
+  opacity: 1;
+  transform: none;
+  filter: none;
+}
+
+/* Lenis owns the smoothing; the browser's own smooth-scroll would fight it. */
+html.lenis,
+html.lenis body {
+  height: auto;
+}
+
+.lenis.lenis-smooth {
+  scroll-behavior: auto !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
