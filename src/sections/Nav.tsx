@@ -9,12 +9,13 @@ const LINKS = [
 
 /** The hour moves with the page: the time label is the scroll position, told as a clock. */
 function Clock() {
-  const look = useDay((s) => s.look);
+  const clock = useDay((s) => s.clock);
+  const label = useDay((s) => s.label);
   return (
     <p className="clock-label" aria-live="off">
       <span className="clock-dot" aria-hidden />
-      <span className="tabular">{look.clock}</span>
-      <span className="text-muted">{look.label}</span>
+      <span className="tabular">{clock}</span>
+      <span className="nav-muted">{label}</span>
     </p>
   );
 }

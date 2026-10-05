@@ -1,37 +1,28 @@
 import { hero, person } from '@/content/site.ts';
-import { Rich } from '@/ui/Rich.tsx';
+import { Scene } from './Scene.tsx';
 
 export function Hero() {
   return (
-    <section id="top" data-look="dawn" className="hero">
-      <div className="wrap hero-inner">
-        <p className="eyebrow" data-intro="fade">
-          {person.role} <span aria-hidden>·</span> {person.where}
-        </p>
-        <h1 className="display-xl hero-name" data-intro="name">
-          <span className="block">Muhammad Abdullah</span>
-          <span className="block">
-            <em>Usmani</em>
+    <Scene id="top" className="scene-hero">
+      <p className="eyebrow card-eyebrow" data-intro="fade">
+        {person.where}
+      </p>
+      <h1 className="display-xl" data-intro="name">
+        <span className="block sm:whitespace-nowrap">Muhammad Abdullah</span>
+        <span className="block">
+          <em>Usmani</em>
+        </span>
+      </h1>
+      <p className="card-line" data-intro="fade">
+        {hero.line}
+      </p>
+      <p className="card-metrics tabular" data-intro="fade">
+        {hero.metrics.map((m) => (
+          <span key={m.label}>
+            <strong>{m.stat}</strong> {m.label}
           </span>
-        </h1>
-        <div className="hero-foot">
-          <p className="lead hero-lead" data-intro="fade">
-            <Rich text={hero.lead} />
-          </p>
-          <dl className="metrics">
-            {hero.metrics.map((m) => (
-              <div key={m.label} className="metric" data-intro="metric">
-                <dt className="metric-label">{m.label}</dt>
-                <dd className="metric-stat tabular">{m.stat}</dd>
-              </div>
-            ))}
-          </dl>
-        </div>
-        <a href="#npcs" className="scroll-cue" data-intro="fade">
-          <span className="scroll-cue-line" aria-hidden />
-          Scroll to start the day
-        </a>
-      </div>
-    </section>
+        ))}
+      </p>
+    </Scene>
   );
 }

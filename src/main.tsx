@@ -11,7 +11,7 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
   Object.defineProperty(window, '__site', {
     configurable: true,
     get: () => ({
-      look: useDay.getState().look.label,
+      look: useDay.getState().label,
       dark: useDay.getState().dark,
       smooth: document.documentElement.classList.contains('lenis'),
       /** Jump straight to a section (by id) without the glide. */

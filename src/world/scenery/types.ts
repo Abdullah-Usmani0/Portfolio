@@ -1,0 +1,44 @@
+import type * as THREE from 'three';
+import { mixHex } from '@/motion/color.ts';
+import type { WorldLook } from '../palette.ts';
+
+export interface Frame {
+  look: WorldLook;
+  /** Seconds since the world started. */
+  time: number;
+  dt: number;
+  camX: number;
+  camY: number;
+}
+
+/**
+ * A slice of the world at one depth. It moves `p` times as fast as the camera across the
+ * screen (0 = pinned to the sky, 1 = the foreground), which is all the parallax there is.
+ */
+export interface Layer {
+  group: THREE.Group;
+  p: number;
+  py: number;
+  update?: (f: Frame) => void;
+  dispose?: () => void;
+}
+
+/**
+ * Aerial perspective: a layer's colour at `depth` (0 = nearest, 1 = the horizon) leans
+ * from the shade towards the haze; nearer layers take more of the leaf tint.
+ */
+export function tone(look: WorldLook, depth: number, leaf = 0): string {
+  const base = mixHex(look.shade, look.haze, Math.pow(Math.min(1, Math.max(0, depth)), 0.78));
+  return leaf > 0 ? mixHex(base, look.leaf, leaf * (1 - depth)) : base;
+}
+
+/** Seeded random in [0, 1). */
+export function seeded(seed: number) {
+  let s = seed >>> 0 || 1;
+  return () => {
+    s ^= s << 13;
+    s ^= s >>> 17;
+    s ^= s << 5;
+    return (s >>> 0) / 4294967296;
+  };
+}

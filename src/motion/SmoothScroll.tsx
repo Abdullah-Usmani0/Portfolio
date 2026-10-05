@@ -4,8 +4,9 @@ import type Lenis from 'lenis';
 import { gsap } from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { storyProgress } from '@/ui/storyProgress.ts';
-import { lightAt, LOOKS, type Look, type LookName } from './pageLight.ts';
-import { intro, useDay } from './store.ts';
+import { SCENES, shotAt } from '@/world/journey.ts';
+import { skyIsDark, WORLD_LOOKS } from '@/world/palette.ts';
+import { progress, useDay } from './store.ts';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -13,10 +14,10 @@ gsap.registerPlugin(ScrollTrigger);
 export const scroller: { lenis: Lenis | undefined } = { lenis: undefined };
 
 /**
- * Writes the page light into CSS variables every frame, from where the viewport centre
- * sits among the `[data-look]` sections. Style is only written when a value changes.
+ * Turns the scroll position into a scene position every frame — where the viewport centre
+ * sits among the `[data-scene]` sections — for the world to draw and the nav to name.
  */
-function LightDriver() {
+function SceneDriver() {
   const lenis = useLenis(ScrollTrigger.update);
 
   useEffect(() => {
@@ -26,14 +27,11 @@ function LightDriver() {
   useEffect(() => {
     const root = document.documentElement;
     let centers: number[] = [];
-    let looks: Look[] = [];
-    let last = '';
 
     const measure = () => {
-      const sections = [...document.querySelectorAll<HTMLElement>('[data-look]')];
-      looks = sections.map((el) => LOOKS[el.dataset.look as LookName] ?? LOOKS.dawn);
-      // A centre the viewport can never reach (the first and last sections) is pulled in,
-      // so the first and last looks still land exactly at the top and bottom of the page.
+      const sections = [...document.querySelectorAll<HTMLElement>('[data-scene]')];
+      // A centre the viewport can never reach (the first and last scenes) is pulled in,
+      // so the journey still starts and ends exactly at the top and bottom of the page.
       const lo = window.innerHeight / 2;
       const hi = Math.max(lo, root.scrollHeight - window.innerHeight / 2);
       centers = sections.map((el) => {
@@ -43,24 +41,16 @@ function LightDriver() {
     };
 
     const apply = () => {
-      if (looks.length === 0) return;
+      if (centers.length === 0) return;
       const p = storyProgress(centers, window.scrollY + window.innerHeight / 2);
-      const l = lightAt(looks, p * (looks.length - 1));
-      const glowY = l.glowY + (1 - intro.rise) * 48;
-      const key = `${l.bg}${l.glow}${glowY.toFixed(1)}`;
-      if (key !== last) {
-        last = key;
-        root.style.setProperty('--bg', l.bg);
-        root.style.setProperty('--bg-rgb', l.bgRgb);
-        root.style.setProperty('--glow', l.glow);
-        root.style.setProperty('--glow-y', `${glowY.toFixed(2)}%`);
-      }
+      progress.s = p * (centers.length - 1);
+      const scene = Math.round(progress.s);
+      const dark = skyIsDark(shotAt(progress.s).look);
       const day = useDay.getState();
-      if (day.look !== l.look || day.dark !== l.dark || !root.style.getPropertyValue('--ink')) {
-        root.style.setProperty('--ink', l.ink);
-        root.style.setProperty('--muted', l.muted);
-        root.style.colorScheme = l.dark ? 'dark' : 'light';
-        useDay.setState({ look: l.look, dark: l.dark });
+      if (day.scene !== scene || day.dark !== dark) {
+        const look = WORLD_LOOKS[SCENES[scene]?.look ?? 'dawn'];
+        useDay.setState({ scene, dark, label: look.label, clock: look.clock });
+        root.dataset.sky = dark ? 'dark' : 'light';
       }
     };
 
@@ -86,7 +76,7 @@ function LightDriver() {
 
 /**
  * Lenis smooths the page's own scroll (it never fakes it), and GSAP's ticker is the one
- * clock: it steps Lenis, then ScrollTrigger and the light read the same position.
+ * clock: it steps Lenis first, then ScrollTrigger, the scene position and the world.
  * Lenis turns smoothing off by itself for people who prefer reduced motion.
  */
 export function SmoothScroll({ children }: { children: ReactNode }) {
@@ -105,7 +95,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       ref={ref}
       options={{ autoRaf: false, anchors: true, allowNestedScroll: true, stopInertiaOnNavigate: true, autoToggle: true }}
     >
-      <LightDriver />
+      <SceneDriver />
       {children}
     </ReactLenis>
   );

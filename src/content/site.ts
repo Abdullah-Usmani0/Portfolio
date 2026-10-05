@@ -5,8 +5,6 @@
  *
  * `*text*` marks the words set in the serif italic.
  */
-import type { LookName } from '@/motion/pageLight.ts';
-
 export interface Proof {
   stat: string;
   label: string;
@@ -15,9 +13,10 @@ export interface Proof {
 
 export interface Chapter {
   id: string;
-  look: LookName;
   kicker: string;
   title: string;
+  /** One sentence for the scene card; the rest lives in the details panel. */
+  line: string;
   lead: string;
   proofs: readonly Proof[];
   stack: readonly string[];
@@ -33,6 +32,7 @@ export const person = {
 } as const;
 
 export const hero = {
+  line: 'Founding AI Engineer. I build humanoid AI coworkers, self-improving agent systems and real-time voice AI.',
   lead: 'I build *humanoid AI coworkers*, self-improving multi-agent systems and real-time voice AI.',
   metrics: [
     { stat: '1M+', label: 'learner interactions a day' },
@@ -45,7 +45,7 @@ export const hero = {
 export const chapters: readonly Chapter[] = [
   {
     id: 'npcs',
-    look: 'morning',
+    line: 'Humanoid NPCs with a voice, a memory and a personality of their own.',
     kicker: 'Humanoid NPCs',
     title: 'AI characters people actually *talk to*.',
     lead: 'Every character on Zero is a person, not a prompt. Each has about ninety traits, a voice of its own, a memory of you, and a context window rebuilt for every turn. A manager stays the same person across chat, planning, grading and nudges.',
@@ -58,7 +58,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'councils',
-    look: 'day',
+    line: '127 tool-bound agents build a curriculum, and learn from every run.',
     kicker: 'Curriculum Council',
     title: 'Six councils of agents that *improve themselves*.',
     lead: '127 tool-bound agents research, design, build, audit, train and film a curriculum. A SkillOps loop turns their recurring failures into better prompts, but only once the evidence spans enough scenarios to be a real pattern.',
@@ -71,7 +71,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'scenarios',
-    look: 'afternoon',
+    line: 'Focus maps, scenarios and stages, with an exemplar that shows what good looks like.',
     kicker: 'Scenario generation',
     title: 'One job role in, *a world of work* out.',
     lead: 'A role becomes a focus map, the map becomes scenarios, and each scenario becomes objectives and typed stages, with the resources, voice notes, checks and the What Good Looks Like exemplar a learner needs to do real work.',
@@ -84,7 +84,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'learners',
-    look: 'golden',
+    line: 'Simulated cohorts play every scenario before a real person does.',
     kicker: 'Simulated learners',
     title: 'Learners that *fail first*, so real ones don’t.',
     lead: 'Before a scenario ships, a cohort of simulated learners plays it through the real platform. They read each stage cold, ask the manager, hand in real files and retry until they pass. Where they stumble becomes a fix.',
@@ -97,7 +97,7 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'voice',
-    look: 'dusk',
+    line: 'Live tutoring on LiveKit, with 2.1 seconds to the first spoken sentence.',
     kicker: 'Real-time voice',
     title: 'Voice agents that *feel like a call*.',
     lead: 'LiveKit meeting agents tutor learners live, with avatar video from Tavus and HeyGen. Grading and replying in one streamed call cut the wait for the first spoken sentence from 5.4 to 2.1 seconds.',
@@ -112,7 +112,7 @@ export const chapters: readonly Chapter[] = [
 
 export const mind = {
   id: 'mind',
-  look: 'night' as LookName,
+  line: 'How every character’s mind is assembled, one block at a time.',
   kicker: 'Context engineering',
   title: 'Context, *poured in order*.',
   lead: 'Every turn, a character’s context is assembled block by block, identity first and voice last. Everything above the cache line is a stable prefix the model has already read. Below it is the live turn.',
@@ -140,7 +140,7 @@ export const mind = {
 
 export const ascent = {
   id: 'ascent',
-  look: 'lateNight' as LookName,
+  line: 'From base camp at university to founding engineer at Zero.',
   kicker: 'Career',
   title: 'Camp by camp, *up the mountain*.',
   lead: 'Every role was a camp on the way up. The mountain is K2, 8,611 metres, and the summit is what comes next.',
@@ -190,7 +190,6 @@ export const ascent = {
 
 export const index = {
   id: 'index',
-  look: 'lateNight' as LookName,
   projects: [
     { name: 'UAE traffic signs', year: '2024', text: 'Hierarchical detection and real-time text recognition. 0.92 mAP, 0.89 word accuracy.' },
     { name: 'Jet blade inspection', year: '2023', text: 'Reading etchings on metal blades with scene-text recognition. Sponsored by Lufthansa Technik.' },
@@ -219,7 +218,6 @@ export const index = {
 
 export const summit = {
   id: 'summit',
-  look: 'sunrise' as LookName,
   kicker: 'What comes next',
   title: 'The summit is *the future*.',
   vision:
