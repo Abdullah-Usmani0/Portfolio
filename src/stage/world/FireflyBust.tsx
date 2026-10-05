@@ -186,7 +186,9 @@ export function FireflyBust({ field, maxPoints, drawPoints }: { field: Heightfie
     const atMind = st.act === 5 && st.moving < 0.05 && gather > 0.99;
     if (atMind && s.restSince < 0) s.restSince = t;
     if (!atMind) s.restSince = -1;
-    const auto = s.restSince > 0 ? Math.floor((t - s.restSince - 2) / 6) % 2 === 0 && t - s.restSince > 2 : false;
+    // Let the bust be admired first: pour after 6 s, then alternate every 7 s.
+    const rested = s.restSince > 0 ? t - s.restSince : -1;
+    const auto = rested > 6 && Math.floor((rested - 6) / 7) % 2 === 0;
     const want = (st.mindPond ?? auto) ? 1 : 0;
     s.morph += (want - s.morph) * (1 - Math.exp(-0.9 * delta));
     u.uMorph!.value = s.morph;
