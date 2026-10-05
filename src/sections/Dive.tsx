@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState } from 'react';
 import { gsap } from 'gsap';
-import { DIVES, stepIndex, type Dive as DiveData } from '@/content/dives.ts';
+import { DIVES, stepIndex, type Dive as DiveData, type Label } from '@/content/dives.ts';
 import { scroller } from '@/motion/SmoothScroll.tsx';
 import { closeDive, openDive, useDive } from '@/motion/store.ts';
 import { cn } from '@/ui/cn.ts';
 import { anchorOf } from '@/world/anchors.ts';
 import { SHEET_BELOW } from '@/world/diveFraming.ts';
 import { worldView } from '@/world/view.ts';
-import { DiveDiagram } from './DiveDiagram.tsx';
+import { DiveDiagram, onWorld } from './DiveDiagram.tsx';
+import { ContextLab } from './dives/ContextLab.tsx';
 
 /** Step forward or back through the open dive. */
 function go(delta: number) {
@@ -65,6 +66,63 @@ function Pins({ dive, active }: { dive: DiveData; active: string }) {
         </button>
       ))}
     </>
+  );
+}
+
+/** Words that ride on the world beside what they name, shown and hidden in time with it. */
+/** Labels keep below the back button. */
+const LABEL_TOP = 66;
+
+function Labels({ scene, labels, sheet }: { scene: string; labels: readonly Label[]; sheet: boolean }) {
+  const refs = useRef<(HTMLSpanElement | null)[]>([]);
+  useEffect(() => {
+    const sizes: { w: number; h: number }[] = [];
+    const place = () => {
+      labels.forEach((label, i) => {
+        const el = refs.current[i];
+        if (!el) return;
+        const a = anchorOf(scene, label.anchor);
+        const side = label.side ?? 'right';
+        const px = !a ? 0 : side === 'right' ? a.x + a.w / 2 : side === 'left' ? a.x - a.w / 2 : a.x;
+        const py = !a ? 0 : side === 'top' ? a.y + a.h / 2 : side === 'bottom' ? a.y - a.h / 2 : a.y;
+        const p = a && worldView.project ? worldView.project(a.group, px, py) : null;
+        const shown = label.id ? (worldView.labels[label.id] ?? 1) : 1;
+        if (!p || shown < 0.02) {
+          el.style.visibility = 'hidden';
+          return;
+        }
+        // Measured once: the words never change while the step is open.
+        const size = (sizes[i] ??= { w: el.offsetWidth, h: el.offsetHeight });
+        let x = side === 'right' ? p.x + 12 : side === 'left' ? p.x - 12 - size.w : p.x - size.w / 2;
+        let y = side === 'top' ? p.y - 10 - size.h : side === 'bottom' ? p.y + 10 : p.y - size.h / 2;
+        // Never off the edge of the screen.
+        x = Math.min(window.innerWidth - size.w - 8, Math.max(8, x));
+        y = Math.min(window.innerHeight - size.h - 8, Math.max(LABEL_TOP, y));
+        el.style.visibility = '';
+        el.style.opacity = shown.toFixed(3);
+        el.style.transform = `translate3d(${x.toFixed(1)}px, ${y.toFixed(1)}px, 0)`;
+      });
+    };
+    gsap.ticker.add(place);
+    return () => gsap.ticker.remove(place);
+  }, [scene, labels, sheet]);
+  return (
+    <div className="dive-labels" aria-hidden>
+      {labels.map((label, i) => (
+        <span
+          key={`${label.anchor}-${label.id ?? i}`}
+          ref={(el) => {
+            refs.current[i] = el;
+          }}
+          className="dive-label"
+          data-tone={label.tone ?? 'cream'}
+          data-side={label.side ?? 'right'}
+          style={label.dot ? ({ '--dot': label.dot } as React.CSSProperties) : undefined}
+        >
+          {sheet && label.short ? label.short : label.text}
+        </span>
+      ))}
+    </div>
   );
 }
 
@@ -159,8 +217,9 @@ export function Dive() {
           <button type="button" className="dive-back" onClick={closeDive}>
             <span aria-hidden>←</span> Back to the valley
           </button>
-          {!current.diagram || current.diagram === 'loops' ? <Pins dive={dive} active={current.id} /> : null}
-          {current.diagram && (!sheet || current.diagram === 'loops') ? <DiveDiagram kind={current.diagram} scene={dive.scene} /> : null}
+          {!current.diagram || onWorld(current.diagram, sheet) ? <Pins dive={dive} active={current.id} /> : null}
+          {current.labels ? <Labels key={`labels-${current.id}`} scene={dive.scene} labels={current.labels} sheet={sheet} /> : null}
+          {current.diagram && (!sheet || onWorld(current.diagram, sheet)) ? <DiveDiagram key={`diagram-${current.id}`} kind={current.diagram} scene={dive.scene} /> : null}
           <div
             ref={card}
             className="dive-card"
@@ -184,7 +243,8 @@ export function Dive() {
                 {current.title}
               </h2>
               <p className="dive-line">{current.line}</p>
-              {current.diagram && sheet && current.diagram !== 'loops' ? <DiveDiagram kind={current.diagram} scene={dive.scene} inline /> : null}
+              {current.diagram && sheet && !onWorld(current.diagram, sheet) ? <DiveDiagram kind={current.diagram} scene={dive.scene} inline /> : null}
+              {current.widget === 'context-lab' ? <ContextLab /> : null}
               {current.points.length ? (
                 <ul className="dive-points">
                   {current.points.map((p) => (

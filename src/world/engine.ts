@@ -149,6 +149,8 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         camX,
         camY,
         s: shot.s,
+        viewW,
+        viewH,
         dive: diving ? { scene: diving.scene, step: diving.step, t: diving.t } : null,
       };
       // Where each layer sits on the journey, before any dive.
@@ -190,7 +192,9 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       sky.uniforms.uTop.value.set(look.skyTop);
       sky.uniforms.uHorizon.value.set(look.skyHorizon);
       sky.uniforms.uSun.value.set(look.sun);
-      sky.uniforms.uSunPos.value.set(look.sunX, 0.3 + look.sunY * 0.62);
+      // In a night dive the moon climbs out of the frame, as if the camera tipped down into the scene.
+      const tip = diving && look.stars > 0.5 ? diving.t : 0;
+      sky.uniforms.uSunPos.value.set(look.sunX, 0.3 + look.sunY * 0.62 + tip * 0.55);
       sky.uniforms.uStars.value = look.stars;
       renderer.render(scene, camera);
     },

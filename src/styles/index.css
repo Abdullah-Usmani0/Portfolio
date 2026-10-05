@@ -813,6 +813,275 @@ main,
   stroke-width: 4px;
 }
 
+/* Labels riding on the world beside what they name. */
+.dive-label {
+  --tone: var(--cream);
+  position: fixed;
+  left: 0;
+  top: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border: 1px solid rgb(246 241 234 / 0.16);
+  border-radius: 999px;
+  background: rgb(10 9 18 / 0.66);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  color: var(--tone);
+  font: 500 10px/1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  pointer-events: none;
+  will-change: transform, opacity;
+  animation: dive-fade 600ms var(--ease-out-expo) 900ms both;
+  transition: opacity 320ms ease;
+}
+
+.dive-label::before {
+  content: '';
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dot, var(--tone));
+  box-shadow: 0 0 8px var(--dot, var(--tone));
+}
+
+.dive-label[data-tone='lime'] {
+  --tone: #d4ff5c;
+}
+
+.dive-label[data-tone='amber'] {
+  --tone: #ffc45c;
+}
+
+.dive-label[data-tone='cyan'] {
+  --tone: #6ae8ff;
+}
+
+.dive-label[data-tone='violet'] {
+  --tone: #cfa6ff;
+}
+
+.dive-label[data-tone='red'] {
+  --tone: #ff8a7a;
+  border-color: rgb(255 106 85 / 0.45);
+}
+
+/* The four failures, as cards that light in time with the world. */
+.failures {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 10px;
+  width: min(100%, 760px);
+  pointer-events: none;
+}
+
+.failures.is-inline {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.failure {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding: 12px 13px 13px;
+  border: 1px solid rgb(246 241 234 / 0.14);
+  border-radius: 16px;
+  background: rgb(10 12 22 / 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  opacity: 0.5;
+  transition:
+    opacity 400ms var(--ease-out-expo),
+    border-color 400ms var(--ease-out-expo),
+    transform 400ms var(--ease-out-expo);
+}
+
+.failure[data-state='failing'] {
+  opacity: 1;
+  border-color: rgb(255 106 85 / 0.7);
+  transform: translateY(-3px);
+}
+
+.failure[data-state='fixed'] {
+  opacity: 1;
+  border-color: rgb(185 239 46 / 0.7);
+  transform: translateY(-3px);
+}
+
+.failure-name {
+  color: var(--cream);
+  font: 500 10.5px/1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.failure[data-state='failing'] .failure-name {
+  color: #ff8a7a;
+}
+
+.failure-what,
+.failure-fix {
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: rgb(246 241 234 / 0.72);
+}
+
+.failure-fix {
+  color: rgb(246 241 234 / 0.55);
+  transition: color 400ms var(--ease-out-expo);
+}
+
+.failure[data-state='fixed'] .failure-fix {
+  color: var(--cream);
+}
+
+.failures.is-inline .failure {
+  padding: 10px 11px;
+}
+
+.failures.is-inline .failure-what {
+  display: none;
+}
+
+/* The mini-lab: switches for the blocks, and the reply they make. */
+.lab {
+  display: grid;
+  gap: 12px;
+}
+
+.lab-switches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.lab-switches button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 10px;
+  border: 1px solid rgb(246 241 234 / 0.3);
+  border-radius: 999px;
+  background: transparent;
+  color: rgb(246 241 234 / 0.5);
+  font: 500 10.5px/1 var(--font-mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 250ms var(--ease-out-expo),
+    color 250ms var(--ease-out-expo),
+    border-color 250ms var(--ease-out-expo);
+}
+
+.lab-switches button::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dot);
+  opacity: 0.35;
+  transition: opacity 250ms;
+}
+
+.lab-switches button[aria-pressed='true'] {
+  border-color: rgb(246 241 234 / 0.5);
+  background: rgb(246 241 234 / 0.08);
+  color: var(--cream);
+}
+
+.lab-switches button[aria-pressed='true']::before {
+  opacity: 1;
+  box-shadow: 0 0 8px var(--dot);
+}
+
+.lab-switches button:hover {
+  border-color: var(--cream);
+}
+
+.lab-chat {
+  display: grid;
+  gap: 8px;
+}
+
+.lab-msg {
+  display: grid;
+  gap: 3px;
+  padding: 10px 13px;
+  border-radius: 14px;
+  font-size: 13.5px;
+  line-height: 1.5;
+}
+
+.lab-msg.is-learner {
+  justify-self: end;
+  max-width: 88%;
+  background: rgb(246 241 234 / 0.1);
+  color: rgb(246 241 234 / 0.82);
+}
+
+.lab-msg.is-npc {
+  border: 1px solid rgb(185 239 46 / 0.32);
+  background: rgb(185 239 46 / 0.07);
+  color: var(--cream);
+}
+
+.lab-who {
+  font: 500 9.5px/1.2 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgb(246 241 234 / 0.5);
+}
+
+.lab-losses {
+  display: grid;
+  gap: 6px;
+}
+
+.lab-losses li {
+  position: relative;
+  padding-left: 16px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: rgb(246 241 234 / 0.72);
+}
+
+.lab-losses li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.55em;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--dot, var(--cream));
+}
+
+.lab-more,
+.lab-hint {
+  font-size: 12.5px;
+  color: rgb(246 241 234 / 0.5);
+}
+
+.lab-reset {
+  appearance: none;
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--firefly);
+  font: 500 12.5px/1.4 var(--font-sans);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+
 @keyframes dive-fade {
   from {
     opacity: 0;
@@ -868,6 +1137,7 @@ main,
 @media (prefers-reduced-motion: reduce) {
   .dive-back,
   .dive-pin,
+  .dive-label,
   .dive-card,
   .dive-body,
   .dive-diagram,

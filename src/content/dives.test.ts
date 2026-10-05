@@ -17,6 +17,7 @@ describe('dives', () => {
       const known: readonly string[] = ANCHOR_IDS[dive.scene as keyof typeof ANCHOR_IDS] ?? [];
       for (const step of dive.steps) if (step.focus) expect(known, `${dive.scene}/${step.id}`).toContain(step.focus);
       for (const pin of dive.pins ?? []) expect(known, `${dive.scene} pin`).toContain(pin.anchor);
+      for (const step of dive.steps) for (const label of step.labels ?? []) expect(known, `${dive.scene}/${step.id} label`).toContain(label.anchor);
     }
   });
 
