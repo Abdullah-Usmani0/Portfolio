@@ -12,8 +12,9 @@ import { tone, type Layer } from './types.ts';
 export function foreground(): Layer {
   const hill = (x: number) =>
     SCENES.reduce((h, s, i) => h + (i === 0 ? 360 : 300) * Math.exp(-(((x - (s.x - 560)) / 600) ** 2)), 0);
-  // No tall pine may stand behind a scene's words.
-  const clear = (x: number) => SCENES.some((s) => x > s.x - 980 && x < s.x - 60);
+  // No tall pine may stand behind a scene's words or in front of its set piece; they
+  // frame the edges and fill the stretches between scenes instead.
+  const clear = (x: number) => SCENES.some((s) => x > s.x - 980 && x < s.x + 660);
   const xs: number[] = [];
   const ys: number[] = [];
   const sw: number[] = [];

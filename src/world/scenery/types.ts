@@ -9,6 +9,8 @@ export interface Frame {
   dt: number;
   camX: number;
   camY: number;
+  /** Scene position: 0 = first scene centred, 1 = the next, … */
+  s: number;
 }
 
 /**

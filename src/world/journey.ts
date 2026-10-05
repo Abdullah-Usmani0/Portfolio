@@ -37,6 +37,8 @@ export interface Shot {
   look: WorldLook;
   /** Index of the nearest scene. */
   scene: number;
+  /** The exact scene position, between scene indices while gliding. */
+  s: number;
 }
 
 /** Camera and light at scene position `s` (0 = first scene centred, 1 = the next, …). */
@@ -55,5 +57,6 @@ export function shotAt(s: number, scenes: readonly Scene[] = SCENES): Shot {
       pos,
     ),
     scene: Math.round(pos),
+    s: pos,
   };
 }

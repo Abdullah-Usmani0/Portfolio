@@ -3,6 +3,7 @@ import { gsap } from 'gsap';
 import { intro, progress } from '@/motion/store.ts';
 import { createWorld, type World as WorldApi } from './engine.ts';
 import { shotAt } from './journey.ts';
+import { pointer } from './pointer.ts';
 
 /** The illustrated valley behind the page. Draws on GSAP's ticker, after the scroll has moved. */
 export default function World() {
@@ -13,7 +14,8 @@ export default function World() {
     if (!el) return;
     let world: WorldApi;
     try {
-      world = createWorld(el, window.matchMedia('(max-width: 700px)').matches ? 1.5 : 2);
+      const small = window.matchMedia('(max-width: 700px)').matches;
+      world = createWorld(el, small ? 1.5 : 2, small ? 14000 : 32000);
     } catch {
       document.documentElement.dataset.world = 'off';
       return;
@@ -21,6 +23,13 @@ export default function World() {
     const resize = () => world.resize(window.innerWidth, window.innerHeight);
     resize();
     window.addEventListener('resize', resize);
+    const onPointer = (e: PointerEvent) => {
+      if (e.pointerType !== 'mouse') return;
+      pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+      pointer.y = -((e.clientY / window.innerHeight) * 2 - 1);
+      pointer.active = true;
+    };
+    window.addEventListener('pointermove', onPointer, { passive: true });
     const t0 = performance.now();
     let last = t0;
     const tick = () => {
@@ -37,6 +46,7 @@ export default function World() {
     return () => {
       gsap.ticker.remove(tick);
       window.removeEventListener('resize', resize);
+      window.removeEventListener('pointermove', onPointer);
       world.dispose();
     };
   }, []);

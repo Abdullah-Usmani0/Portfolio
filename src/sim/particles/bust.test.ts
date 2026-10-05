@@ -113,3 +113,28 @@ describe('context layers', () => {
     expect(CACHE_LINE).toBeLessThan(CONTEXT_LAYERS.length);
   });
 });
+
+describe('stackTargets', () => {
+  it('stacks identity on top and voice at the bottom, with a gap at the cache line', async () => {
+    const { stackTargets, CACHE_LINE } = await import('./bust.ts');
+    const layers = 10;
+    const n = 2000;
+    const layer = new Float32Array(n);
+    const rand = new Float32Array(n * 4);
+    for (let i = 0; i < n; i++) {
+      layer[i] = i % layers;
+      for (let k = 0; k < 4; k++) rand[i * 4 + k] = ((i * 7 + k * 13) % 97) / 97;
+    }
+    const pos = stackTargets(layer, rand, 1, layers);
+    const ys = (k: number) => [...Array(n).keys()].filter((i) => layer[i] === k).map((i) => pos[i * 3 + 1]!);
+    const lowest = (k: number) => Math.min(...ys(k));
+    const highest = (k: number) => Math.max(...ys(k));
+    for (let k = 1; k < layers; k++) expect(highest(k)).toBeLessThan(lowest(k - 1));
+    expect(lowest(CACHE_LINE - 1) - highest(CACHE_LINE)).toBeGreaterThan(0.05);
+    for (let i = 0; i < n; i++) {
+      expect(Math.abs(pos[i * 3]!)).toBeLessThanOrEqual(0.5);
+      expect(pos[i * 3 + 1]!).toBeGreaterThan(0);
+      expect(pos[i * 3 + 1]!).toBeLessThanOrEqual(1);
+    }
+  });
+});

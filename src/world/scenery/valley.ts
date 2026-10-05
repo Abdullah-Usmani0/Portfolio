@@ -16,13 +16,19 @@ const STEP = 8;
 const groundNoise = fbm(11, 3);
 const riverNoise = fbm(23, 3);
 
+/** Where the river opens into the lake at dusk, and how far either side it spreads. */
+export const LAKE_X = 13000 * 0.55 + 260;
+const LAKE_HALF = 760;
+/** 1 across the lake, easing to 0 at its ends. */
+export const lakeness = (x: number) => 1 / (1 + ((x - LAKE_X) / LAKE_HALF) ** 8);
+
 /** The ground line of the valley floor. */
 export const groundY = (x: number) => -262 + 7 * groundNoise(x / 520);
 /** The river's far bank (top edge) and near bank (bottom edge). */
-export const riverTop = (x: number) => -287 + 5 * Math.sin(x * 0.0021) + 3 * riverNoise(x / 300);
+export const riverTop = (x: number) => -287 + 5 * Math.sin(x * 0.0021) + 3 * riverNoise(x / 300) + 50 * lakeness(x);
 export const riverBottom = (x: number) => {
   const start = Math.min(1, Math.max(0, (x - FALLS_X) / 260));
-  return riverTop(x) - (10 + start * (26 + 6 * Math.sin(x * 0.0013 + 1)));
+  return riverTop(x) - (10 + start * (26 + 6 * Math.sin(x * 0.0013 + 1))) - 96 * lakeness(x);
 };
 
 /**
@@ -77,7 +83,7 @@ export function valley(): Layer {
   // The rock the falls spill over.
   const c = cliffLine();
   const cliff = flatMaterial({ y0: -280, y1: -50 });
-  const cliffMesh = new THREE.Mesh(silhouette(c.xs, c.ys, -1600), cliff);
+  const cliffMesh = new THREE.Mesh(silhouette(c.xs, c.ys, -305), cliff);
   cliffMesh.position.z = 0.4;
   group.add(cliffMesh);
 

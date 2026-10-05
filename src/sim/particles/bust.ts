@@ -176,3 +176,24 @@ export function parseBustMesh(buf: ArrayBuffer): { positions: Float32Array; indi
   if (indices.length !== nt * 3) throw new Error('bust mesh: truncated');
   return { positions, indices };
 }
+
+/**
+ * The context window as a stack: each point lines up in its block's band, identity on top
+ * and voice at the bottom, with a gap at the cache line. Bands are 1 wide (x in −0.5…0.5)
+ * and the whole stack is `height` tall, so the caller scales it into the scene.
+ */
+export function stackTargets(layer: Float32Array, rand: Float32Array, height = 1, layers = CONTEXT_LAYERS.length): Float32Array {
+  const n = layer.length;
+  const out = new Float32Array(n * 3);
+  const gap = height * 0.06;
+  const band = (height - gap) / layers;
+  for (let i = 0; i < n; i++) {
+    const k = Math.min(layers - 1, Math.max(0, Math.floor(layer[i]!)));
+    const below = k >= CACHE_LINE ? gap : 0;
+    const top = height - k * band - below;
+    out[i * 3] = rand[i * 4 + 1]! - 0.5;
+    out[i * 3 + 1] = top - band * (0.15 + 0.6 * rand[i * 4 + 2]!);
+    out[i * 3 + 2] = (rand[i * 4 + 3]! - 0.5) * 0.04;
+  }
+  return out;
+}

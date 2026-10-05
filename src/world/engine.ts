@@ -10,6 +10,10 @@ import { forestLayer } from './scenery/ridges.ts';
 import type { Frame, Layer } from './scenery/types.ts';
 import { valley } from './scenery/valley.ts';
 import { councils } from './scenery/councils.ts';
+import { farm } from './scenery/farm.ts';
+import { lake } from './scenery/lake.ts';
+import { mind } from './scenery/mind.ts';
+import { provingGrounds } from './scenery/proving.ts';
 import { village } from './scenery/village.ts';
 
 /** The view is this many world units tall on a landscape screen; portrait screens see more. */
@@ -27,7 +31,7 @@ export interface World {
  * the page's hour. An orthographic camera slides along; each layer slides by its own
  * share of that, which is the whole of the parallax.
  */
-export function createWorld(canvas: HTMLCanvasElement, maxDpr: number): World {
+export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies: number): World {
   THREE.ColorManagement.enabled = false;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -43,6 +47,9 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number): World {
   const valleyLayer = valley();
   const updateVillage = village(valleyLayer.group);
   const updateCouncils = councils(valleyLayer.group);
+  const updateFarm = farm(valleyLayer.group);
+  const updateProving = provingGrounds(valleyLayer.group);
+  const updateLake = lake(valleyLayer.group);
 
   // Far to near; each gets its own depth slot in z.
   const layers: Layer[] = [
@@ -60,8 +67,12 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number): World {
         valleyLayer.update?.(f);
         updateVillage(f);
         updateCouncils(f);
+        updateFarm(f);
+        updateProving(f);
+        updateLake(f);
       },
     },
+    mind(fireflies),
     foreground(),
   ];
   layers.forEach((l, i) => {
@@ -92,7 +103,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number): World {
       const camY = shot.y - (viewH - VIEW_H) * 0.18;
       camera.position.x = shot.x;
       camera.position.y = camY;
-      const frame: Frame = { look: shot.look, time, dt, camX: shot.x, camY };
+      const frame: Frame = { look: shot.look, time, dt, camX: shot.x, camY, s: shot.s };
       for (const l of layers) {
         l.group.position.x = shot.x * (1 - l.p);
         l.group.position.y = camY * (1 - l.py);
