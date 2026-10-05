@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { anchorOf } from '../anchors.ts';
 import { ANCHOR_IDS } from '../anchorIds.ts';
+import { lake } from './lake.ts';
 import { provingGrounds } from './proving.ts';
 import { village } from './village.ts';
 
@@ -22,5 +23,10 @@ describe('set pieces register every anchor their dive uses', () => {
   it('the village', () => {
     village(new THREE.Group());
     for (const id of ANCHOR_IDS.npcs) expect(anchorOf('npcs', id), id).not.toBeNull();
+  });
+
+  it('the lake stage', () => {
+    lake(new THREE.Group());
+    for (const id of ANCHOR_IDS.voice) expect(anchorOf('voice', id), id).not.toBeNull();
   });
 });

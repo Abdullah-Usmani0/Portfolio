@@ -61,7 +61,20 @@ export const ANCHOR_IDS = {
     'farside',
   ],
   ascent: ['route', 'base', 'camp1', 'camp2', 'camp3', 'camp4', 'summit'],
-  voice: ['stage'],
+  voice: [
+    'stage',
+    'screen',
+    'pipeline',
+    ...Array.from({ length: 5 }, (_, k) => `lamp${k}` as const),
+    'ledger',
+    'race',
+    'finishFast',
+    'finishSlow',
+    'screenshare',
+    'laptop',
+    'gate',
+    'lanterns',
+  ],
   mind: [
     // Where the camera looks, one per formation.
     'bust',

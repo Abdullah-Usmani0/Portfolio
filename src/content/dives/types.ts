@@ -34,7 +34,13 @@ export type Diagram =
   | 'disposition'
   | 'onemanager'
   | 'nudgegate'
-  | 'facepipe';
+  | 'facepipe'
+  | 'twocalls'
+  | 'verdict'
+  | 'sentencegate'
+  | 'framegate'
+  | 'teach'
+  | 'voicestack';
 
 /** An interactive panel inside the step card. */
 export type Widget = 'context-lab';

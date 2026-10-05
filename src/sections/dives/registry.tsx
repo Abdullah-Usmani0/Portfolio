@@ -6,6 +6,7 @@ import { AdLab, Honours, Kit, Logs, NlSql, Research, ZeroBoard } from './career.
 import { AskChat, Attempts, BeforeAfter, ColdRead, FixDiff, Personas, Triage } from './learners.tsx';
 import { Disposition, Everywhere, FacePipe, FourVoices, NudgeGate, OneManager } from './npcs.tsx';
 import { Crate, FarmLoops, Machinery, Plain, Review, Wgll } from './scenarios.tsx';
+import { FrameGate, SentenceGate, Teach, TwoCalls, Verdict, VoiceStack } from './voice.tsx';
 
 /**
  * How each diagram is drawn. `world` diagrams ride on the world itself (drawn over the
@@ -53,4 +54,10 @@ export const DIAGRAMS: Readonly<Record<Diagram, DiagramSpec>> = {
   onemanager: { wide: 'panel', render: () => <OneManager />, inline: () => <OneManager /> },
   nudgegate: { wide: 'panel', render: () => <NudgeGate />, inline: () => <NudgeGate /> },
   facepipe: { wide: 'panel', render: () => <FacePipe />, inline: () => <FacePipe /> },
+  twocalls: { wide: 'panel', render: () => <TwoCalls />, inline: () => <TwoCalls /> },
+  verdict: { wide: 'panel', render: () => <Verdict />, inline: () => <Verdict /> },
+  sentencegate: { wide: 'panel', render: () => <SentenceGate />, inline: () => <SentenceGate /> },
+  framegate: { wide: 'panel', render: () => <FrameGate />, inline: () => <FrameGate /> },
+  teach: { wide: 'panel', render: () => <Teach />, inline: () => <Teach /> },
+  voicestack: { wide: 'panel', render: () => <VoiceStack />, inline: () => <VoiceStack /> },
 };
