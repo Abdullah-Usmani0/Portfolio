@@ -6,7 +6,7 @@ import { createRng } from '@/sim/rng.ts';
 import { buildBustTargets, CONTEXT_LAYERS, LAYER_COLORS, parseBustMesh, stackTargets } from '@/sim/particles/bust.ts';
 import { shared } from '../gl/flat.ts';
 import { pointScale } from '../gl/sprites.ts';
-import { sceneX } from '../journey.ts';
+import { sceneIndex, sceneX } from '../journey.ts';
 import { registerAnchors } from '../anchors.ts';
 import { pointer } from '../pointer.ts';
 import type { Frame, Layer } from './types.ts';
@@ -15,7 +15,7 @@ const P = 0.62;
 /** Bust height in world units, and where its base floats over the night meadow. */
 const SCALE = 270;
 const BASE_Y = -150;
-const MIND_SCENE = 6;
+const MIND_SCENE = sceneIndex('mind');
 
 const vertexShader = /* glsl */ `
   attribute vec3 aStack;

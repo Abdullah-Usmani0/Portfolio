@@ -2,7 +2,7 @@ import { person } from '@/content/site.ts';
 import { useDay } from '@/motion/store.ts';
 
 const LINKS = [
-  { href: '#npcs', label: 'Work' },
+  { href: '#councils', label: 'Work' },
   { href: '#ascent', label: 'Career' },
   { href: '#summit', label: 'Contact' },
 ] as const;

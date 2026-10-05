@@ -22,17 +22,26 @@ export interface Scene {
 
 const GAP = 2600;
 
+/**
+ * Day, then night: the curriculum engine works in daylight (the council, the farm, the
+ * proving grounds), then night falls on the characters (who they are, how their minds are
+ * built, how they speak) and the climb ends at sunrise. The page renders its sections in
+ * this order too, so the two cannot drift apart.
+ */
 export const SCENES: readonly Scene[] = [
   { id: 'top', look: 'dawn', x: 0, y: 0, pan: 745 },
-  { id: 'npcs', look: 'morning', x: GAP, y: 0, pan: 0 },
-  { id: 'councils', look: 'day', x: GAP * 2, y: 0, pan: 600 },
-  { id: 'scenarios', look: 'afternoon', x: GAP * 3, y: 0, pan: 545 },
-  { id: 'learners', look: 'golden', x: GAP * 4, y: 0, pan: 636 },
-  { id: 'voice', look: 'dusk', x: GAP * 5, y: 0, pan: 655 },
-  { id: 'mind', look: 'night', x: GAP * 6, y: 0, pan: 484 },
+  { id: 'councils', look: 'day', x: GAP, y: 0, pan: 600 },
+  { id: 'scenarios', look: 'afternoon', x: GAP * 2, y: 0, pan: 545 },
+  { id: 'learners', look: 'golden', x: GAP * 3, y: 0, pan: 636 },
+  { id: 'npcs', look: 'dusk', x: GAP * 4, y: 0, pan: 0 },
+  { id: 'mind', look: 'night', x: GAP * 5, y: 0, pan: 484 },
+  { id: 'voice', look: 'midnight', x: GAP * 6, y: 0, pan: 655 },
   { id: 'ascent', look: 'lateNight', x: GAP * 7, y: 0, pan: 0 },
   { id: 'summit', look: 'sunrise', x: GAP * 8, y: 0, pan: 0 },
 ];
+
+/** Where a scene sits in the journey, by id. */
+export const sceneIndex = (id: string) => SCENES.findIndex((s) => s.id === id);
 
 export const sceneX = (id: string) => SCENES.find((s) => s.id === id)?.x ?? 0;
 

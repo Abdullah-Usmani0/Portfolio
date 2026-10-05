@@ -5,7 +5,7 @@
  */
 import { luminance, mixHex, smootherstep } from '@/motion/color.ts';
 
-export type WorldLookName = 'dawn' | 'morning' | 'day' | 'afternoon' | 'golden' | 'dusk' | 'night' | 'lateNight' | 'sunrise';
+export type WorldLookName = 'dawn' | 'morning' | 'day' | 'afternoon' | 'golden' | 'dusk' | 'night' | 'midnight' | 'lateNight' | 'sunrise';
 
 export interface WorldLook {
   label: string;
@@ -78,6 +78,12 @@ export const WORLD_LOOKS: Readonly<Record<WorldLookName, WorldLook>> = {
     skyTop: '#060a19', skyHorizon: '#1b2646', sun: '#dde6ff', sunY: 0.74, sunX: -0.5,
     haze: '#29355a', shade: '#060910', snow: '#a2b3d8', water: '#1d2a49', leaf: '#16213a',
     windows: 1, stars: 1, mist: 0.3,
+  },
+  midnight: {
+    label: 'Midnight', clock: '00:20',
+    skyTop: '#0a0a1f', skyHorizon: '#2a2350', sun: '#e6e4ff', sunY: 0.5, sunX: 0.42,
+    haze: '#3a3462', shade: '#08070f', snow: '#b8b2e0', water: '#2b2a5a', leaf: '#1d1a36',
+    windows: 1, stars: 1, mist: 0.32,
   },
   lateNight: {
     label: 'Small hours', clock: '02:10',

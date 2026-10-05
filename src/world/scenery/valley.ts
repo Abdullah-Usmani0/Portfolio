@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
 import { bandGeometry, mistMaterial, riverMaterial, waterfallMaterial } from '../gl/water.ts';
+import { sceneX } from '../journey.ts';
 import { forestLine } from './ridges.ts';
 import { tone, type Layer } from './types.ts';
 
@@ -17,7 +18,7 @@ const groundNoise = fbm(11, 3);
 const riverNoise = fbm(23, 3);
 
 /** Where the river opens into the lake at dusk, and how far either side it spreads. */
-export const LAKE_X = 13000 * 0.55 + 260;
+export const LAKE_X = sceneX('voice') * VALLEY_P + 260;
 const LAKE_HALF = 760;
 /** 1 across the lake, easing to 0 at its ends. */
 export const lakeness = (x: number) => 1 / (1 + ((x - LAKE_X) / LAKE_HALF) ** 8);

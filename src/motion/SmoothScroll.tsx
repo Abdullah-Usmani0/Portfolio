@@ -30,6 +30,10 @@ function SceneDriver() {
 
     const measure = () => {
       const sections = [...document.querySelectorAll<HTMLElement>('[data-scene]')];
+      // The world reads scene i from SCENES[i]; the page must list its scenes in that order.
+      if (import.meta.env.DEV && sections.map((el) => el.id).join() !== SCENES.map((sc) => sc.id).join()) {
+        console.error('[scenes] page order differs from SCENES', sections.map((el) => el.id));
+      }
       // A centre the viewport can never reach (the first and last scenes) is pulled in,
       // so the journey still starts and ends exactly at the top and bottom of the page.
       const lo = window.innerHeight / 2;

@@ -42,6 +42,16 @@ describe('shotAt', () => {
     }
   });
 
+  it('runs through one day: each clock is later than the last, crossing midnight once', () => {
+    const minutes = SCENES.map((s) => {
+      const [h, m] = WORLD_LOOKS[s.look].clock.split(':').map(Number);
+      return h! * 60 + m!;
+    });
+    const wraps = minutes.filter((m, i) => i > 0 && m <= minutes[i - 1]!).length;
+    expect(wraps).toBe(1);
+    expect(new Set(SCENES.map((s) => s.id)).size).toBe(SCENES.length);
+  });
+
   it('clamps outside the journey', () => {
     expect(shotAt(-2).x).toBe(SCENES[0]!.x);
     expect(shotAt(99).x).toBe(SCENES.at(-1)!.x);
