@@ -17,12 +17,14 @@ export default defineConfig({
     timeout: 60_000,
   },
   projects: [
-    { name: 'desktop-webgl', testMatch: /stage\.spec\.ts/, use: { launchOptions: { args: swiftshader } } },
+    // Real WebGL: every dive flies, steps through and closes, with every anchor in place.
+    { name: 'desktop-webgl', testMatch: /dives\.spec\.ts/, use: { launchOptions: { args: swiftshader } } },
     {
       name: 'reduced-motion',
       testMatch: /motion\.spec\.ts/,
       use: { launchOptions: { args: swiftshader }, contextOptions: { reducedMotion: 'reduce' } },
     },
+    // Without WebGL, and on a phone: every word is still there, and the CV prints.
     {
       name: 'no-webgl',
       testMatch: /static\.spec\.ts/,

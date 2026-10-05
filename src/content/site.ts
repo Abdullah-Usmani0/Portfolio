@@ -216,6 +216,22 @@ export const index = {
   ],
 } as const;
 
+/** What was built and won at Zero, in the résumé's words: the Career dive and the CV both use them. */
+export const zeroHighlights = [
+  'Led the design of a large autonomous multi-agent system in LangGraph that generates real work scenarios: researcher, reviewer and multimodal agents that critique and refine each other until quality thresholds are met.',
+  'In production: 1M+ learner interactions a day, at 99.8% uptime and under 200 ms.',
+  'Live voice agents on LiveKit for adaptive tutoring lifted student engagement 340%; the multimodal content pipeline improved learning outcomes 85%.',
+] as const;
+
+/** What the work is built with, grouped the way the printable CV lists it. */
+export const skills = [
+  { group: 'Languages', items: ['Python', 'C++', 'JavaScript', 'Java', 'SQL'] },
+  { group: 'Agents and LLMs', items: ['LangGraph', 'LangChain', 'CrewAI', 'LlamaIndex', 'AutoGen', 'Claude', 'Gemini', 'AWS Bedrock'] },
+  { group: 'Models', items: ['PyTorch', 'TensorFlow', 'Transformers', 'YOLOv8', 'Whisper'] },
+  { group: 'Real time', items: ['LiveKit', 'WebRTC', 'Deepgram', 'ElevenLabs', 'Tavus', 'HeyGen'] },
+  { group: 'Platform', items: ['FastAPI', 'Temporal', 'Redis', 'Supabase', 'Postgres', 'Docker', 'Kubernetes', 'AWS ECS'] },
+] as const;
+
 export const summit = {
   id: 'summit',
   kicker: 'What comes next',

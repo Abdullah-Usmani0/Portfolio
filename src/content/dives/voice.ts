@@ -114,7 +114,7 @@ export const voice: Dive = {
       frame: 'low',
       diagram: 'teach',
       points: [
-        'Placed in the turn’s own instruction rather than the system prompt, the same words taught on 28 of 40 stuck turns instead of about 14.',
+        'Full explanations rose from 6 to 28 of 40 stuck turns. Where the words sit matters: as a block in the system prompt they managed about 14; in the turn’s own instruction, 28.',
         'After fifteen of the learner’s messages there is one offer to move on, in the manager’s own voice, and the learner decides.',
         'Moving on early keeps the progress made, and the record says why the session ended.',
       ],

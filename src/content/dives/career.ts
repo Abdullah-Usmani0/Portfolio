@@ -2,6 +2,7 @@
  * The Career dive: the climb, camp by camp. Each camp is a role, and each opens a board of
  * what was built and won there. Numbers are the résumé's own; no phone number, anywhere.
  */
+import { zeroHighlights } from '../site.ts';
 import type { Dive, Label } from './types.ts';
 
 /** How high each camp stands on K2's Abruzzi route, beside it on the overview (wide screens). */
@@ -114,12 +115,7 @@ export const career: Dive = {
       focus: 'camp4',
       diagram: 'zero',
       frame: 'low',
-      points: [
-        'Led the design of a large autonomous multi-agent system in LangGraph that generates real work scenarios: researcher, reviewer and multimodal agents that critique and refine each other until quality thresholds are met.',
-        'In production: 1M+ learner interactions a day, at 99.8% uptime and under 200 ms.',
-        'Live voice agents on LiveKit for adaptive tutoring lifted student engagement 340%; the multimodal content pipeline improved learning outcomes 85%.',
-        'Everything in the valley below is this camp’s work.',
-      ],
+      points: [...zeroHighlights, 'Everything in the valley below is this camp’s work.'],
       stack: ['LangGraph', 'LiveKit', 'AWS ECS', 'Supabase', 'Postgres'],
     },
     {

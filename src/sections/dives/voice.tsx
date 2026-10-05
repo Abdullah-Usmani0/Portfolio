@@ -410,6 +410,12 @@ const CHAT = [
   { who: 'manager', at: 3.6, lines: ['So where would you look first?'] },
   { who: 'learner', at: 5.2, lines: ['Between sign-up and paying.'] },
 ] as const;
+/** Stuck turns that got a full explanation, of 40: without it, as a system-prompt block, and in the turn. */
+const TAUGHT = [
+  { label: 'without it', n: 6, about: false, color: CREAM },
+  { label: 'in the system prompt', n: 14, about: true, color: AMBER },
+  { label: 'in the turn’s instruction', n: 28, about: false, color: LIME },
+] as const;
 /** Where each bubble sits: learners on the left, the manager on the right, stacked down. */
 const BUBBLES = CHAT.map((m, i) => {
   const w = Math.max(...m.lines.map((l) => l.length)) * 6.72 + 22;
@@ -430,17 +436,17 @@ export function Teach() {
     const t = time % TEACH_LOOP;
     CHAT.forEach((m, i) => rise(bubbles.current[i] ?? null, m.at, t, 0.3));
     rise(tick.current, 6.2, t, 0.3);
-    [14, 28].forEach((n, i) => {
-      const k = ease(6.8 + i * 0.6, 8 + i * 0.6, t);
-      bars.current[i]?.setAttribute('width', ((n / 40) * 170 * k).toFixed(1));
+    TAUGHT.forEach((row, i) => {
+      const k = ease(6.6 + i * 0.6, 7.6 + i * 0.6, t);
+      bars.current[i]?.setAttribute('width', ((row.n / 40) * 120 * k).toFixed(1));
       const c = counts.current[i];
-      if (c) c.textContent = k > 0.02 ? `${i ? '' : '~'}${Math.round(n * k)} of 40` : '';
+      if (c) c.textContent = k > 0.02 ? `${row.about ? '~' : ''}${Math.round(row.n * k)}` : '';
     });
     rise(cap.current, 9.4, t);
     all.current?.setAttribute('opacity', fadeOut(t, TEACH_LOOP).toFixed(2));
   });
   return (
-    <svg viewBox="0 0 540 270" className="diagram-svg" role="img" aria-label="A stuck learner is taught what a funnel counts, then asked where they would look first, and answers. Moved into the turn's own instruction, the same words taught on 28 of 40 stuck turns instead of about 14. After 15 messages, one offer to move on.">
+    <svg viewBox="0 0 540 270" className="diagram-svg" role="img" aria-label="A stuck learner is taught what a funnel counts, then asked where they would look first, and answers. Full explanations: 6 of 40 stuck turns without the instruction, about 14 as a system-prompt block, 28 in the turn's own instruction. After 15 messages, one offer to move on.">
       <Frame w={540} h={270} title="Teach, then check" />
       <g ref={all}>
         {CHAT.map((m, i) => {
@@ -460,16 +466,16 @@ export function Teach() {
           <path d="M276,203 l6,6 l12,-13" fill="none" stroke={LIME} strokeWidth={2.6} strokeLinecap="round" strokeLinejoin="round" />
         </g>
         <text x="326" y="66" className="diagram-label" fill={SOFT}>
-          Stuck turns taught
+          Stuck turns taught, of 40
         </text>
-        {['in the system prompt', 'in the turn’s instruction'].map((label, i) => (
-          <g key={label}>
-            <text x="326" y={92 + i * 48} className="diagram-tag" fill={SOFT}>
-              {label}
+        {TAUGHT.map((row, i) => (
+          <g key={row.label}>
+            <text x="326" y={90 + i * 40} className="diagram-tag" fill={SOFT}>
+              {row.label}
             </text>
-            <rect x="326" y={98 + i * 48} width={170} height={10} rx={5} fill={DIM} />
-            <rect ref={at(bars, i)} x="326" y={98 + i * 48} width={0} height={10} rx={5} fill={i ? LIME : AMBER} />
-            <text ref={at(counts, i)} x="326" y={126 + i * 48} className="diagram-big-s" fill={i ? LIME : AMBER} />
+            <rect x="326" y={96 + i * 40} width={120} height={10} rx={5} fill={DIM} />
+            <rect ref={at(bars, i)} x="326" y={96 + i * 40} width={0} height={10} rx={5} fill={row.color} />
+            <text ref={at(counts, i)} x="456" y={106 + i * 40} className="diagram-big-s" fill={row.color} />
           </g>
         ))}
         <g ref={cap} opacity={0}>

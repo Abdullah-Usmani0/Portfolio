@@ -21,6 +21,9 @@ export function Summit() {
             <a className="link" href={person.github} target="_blank" rel="noreferrer">
               GitHub
             </a>
+            <a className="link" href="#cv">
+              CV
+            </a>
           </p>
         </div>
       </Scene>

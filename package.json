@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "test": "vitest run",
     "test:watch": "vitest",
-    "e2e": "playwright test",
+    "e2e": "vite build && playwright test",
     "assets": "bash scripts/build-assets.sh",
     "check": "npm run typecheck && npm run lint && npm run test && npm run build",
     "build:artifact": "vite build --mode artifact && node scripts/artifact.ts"

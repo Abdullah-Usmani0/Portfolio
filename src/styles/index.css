@@ -1277,3 +1277,237 @@ main,
     transition-delay: 0ms;
   }
 }
+
+/* ─── The printable CV (#cv): the same words as the valley, on one sheet of paper. ─── */
+html:has(.cv),
+body:has(.cv) {
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cv {
+  min-height: 100vh;
+  background: var(--paper);
+  color: var(--ink);
+}
+
+.cv-bar {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px var(--gutter);
+  background: rgb(244 239 232 / 0.9);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid var(--line);
+  font: 500 14px/1 var(--font-sans);
+}
+
+.cv-back {
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.cv-print {
+  padding: 10px 16px;
+  border: 1px solid var(--ink);
+  border-radius: 999px;
+  background: var(--ink);
+  color: var(--paper);
+  font: inherit;
+  cursor: pointer;
+}
+
+.cv-page {
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 48px var(--gutter) 80px;
+  font-size: 15px;
+  line-height: 1.55;
+}
+
+.cv-name {
+  font: 400 44px/1.05 var(--font-serif);
+  letter-spacing: -0.01em;
+}
+
+.cv-role {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.cv-contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 10px;
+  font: 500 13px/1.4 var(--font-mono);
+}
+
+.cv-contact a,
+.cv-page a {
+  color: var(--ink);
+}
+
+.cv-summary {
+  margin-top: 26px;
+  font-size: 17px;
+}
+
+.cv-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  margin-top: 12px;
+  list-style: none;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.cv-metrics strong {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.cv-section {
+  margin-top: 30px;
+}
+
+.cv-section h2 {
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font: 500 12px/1 var(--font-mono);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cv-item {
+  margin-top: 14px;
+}
+
+.cv-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 4px 16px;
+}
+
+.cv-dates {
+  color: var(--muted);
+  font: 400 13px/1.5 var(--font-mono);
+  white-space: nowrap;
+}
+
+.cv-bullets {
+  margin-top: 6px;
+  padding-left: 18px;
+  list-style: disc;
+}
+
+.cv-bullets li + li {
+  margin-top: 3px;
+}
+
+.cv-list {
+  margin-top: 12px;
+  list-style: none;
+}
+
+.cv-list li + li {
+  margin-top: 8px;
+}
+
+.cv-list-text {
+  display: block;
+}
+
+.cv-list-tight li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.cv-list-tight li + li {
+  margin-top: 4px;
+}
+
+.cv-systems {
+  margin-top: 6px;
+  font-size: 14px;
+}
+
+.cv-systems span {
+  color: var(--muted);
+}
+
+.cv-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 32px;
+}
+
+@media (max-width: 640px) {
+  .cv-columns {
+    grid-template-columns: 1fr;
+  }
+
+  .cv-name {
+    font-size: 36px;
+  }
+}
+
+.cv-skills {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.cv-skills div {
+  display: grid;
+  grid-template-columns: 150px 1fr;
+  gap: 12px;
+}
+
+.cv-skills dt {
+  color: var(--muted);
+}
+
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 14mm 16mm;
+  }
+
+  html:has(.cv),
+  body:has(.cv),
+  .cv {
+    background: #fff;
+  }
+
+  .cv-bar {
+    display: none;
+  }
+
+  .cv-page {
+    max-width: none;
+    padding: 0;
+    font-size: 10.5pt;
+  }
+
+  .cv-name {
+    font-size: 30pt;
+  }
+
+  .cv-page a {
+    text-decoration: none;
+  }
+
+  .cv-item,
+  .cv-list li {
+    break-inside: avoid;
+  }
+}

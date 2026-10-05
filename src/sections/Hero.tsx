@@ -8,7 +8,7 @@ export function Hero() {
         {person.where}
       </p>
       <h1 className="display-xl" data-intro="name">
-        <span className="block sm:whitespace-nowrap">Muhammad Abdullah</span>
+        <span className="block sm:whitespace-nowrap">Muhammad Abdullah</span>{' '}
         <span className="block">
           <em>Usmani</em>
         </span>

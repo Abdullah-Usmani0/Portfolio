@@ -5,6 +5,7 @@ const LINKS = [
   { href: '#councils', label: 'Work' },
   { href: '#ascent', label: 'Career' },
   { href: '#summit', label: 'Contact' },
+  { href: '#cv', label: 'CV' },
 ] as const;
 
 /** The hour moves with the page: the time label is the scroll position, told as a clock. */

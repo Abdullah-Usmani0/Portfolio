@@ -4,6 +4,8 @@ import { useGSAP } from '@gsap/react';
 import { playIntro, sceneCards } from '@/motion/choreography.ts';
 import { SmoothScroll } from '@/motion/SmoothScroll.tsx';
 import { intro } from '@/motion/store.ts';
+import { useCvRoute } from '@/lib/route.ts';
+import { Cv } from '@/sections/Cv.tsx';
 import { Dive } from '@/sections/Dive.tsx';
 import { Hero } from '@/sections/Hero.tsx';
 import { Journey } from '@/sections/Journey.tsx';
@@ -14,7 +16,12 @@ gsap.registerPlugin(useGSAP);
 
 const World = lazy(() => import('@/world/World.tsx'));
 
+/** The valley, or the printable CV at `#cv`. */
 export function App() {
+  return useCvRoute() ? <Cv /> : <Site />;
+}
+
+function Site() {
   const scope = useRef<HTMLDivElement>(null);
 
   useGSAP(
