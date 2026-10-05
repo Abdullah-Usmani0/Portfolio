@@ -8,6 +8,8 @@ import { tone, type Layer } from './types.ts';
 
 /** The valley floor travels at this share of the camera's speed. */
 export const VALLEY_P = 0.55;
+/** Where a scene's set piece sits on the valley floor, so it is centred on its screen. */
+export const onValley = (sceneId: string, dx = 0) => sceneX(sceneId) * VALLEY_P + dx;
 /** The glacier waterfall: where the river is born, beside K2 on the first screen. */
 export const FALLS_X = 470;
 const X0 = -2600;

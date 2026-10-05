@@ -8,8 +8,7 @@
  * passed crates float downstream to the simulated learners.
  */
 import { fbm } from '../gl/flat.ts';
-import { groundY, riverBottom, riverTop } from './valley.ts';
-import { onValley } from './village.ts';
+import { groundY, onValley, riverBottom, riverTop } from './valley.ts';
 
 const smoothstep = (a: number, b: number, x: number) => {
   const t = Math.min(1, Math.max(0, (x - a) / (b - a)));

@@ -4,7 +4,20 @@
  * and a test can hold them to each other.
  */
 export const ANCHOR_IDS = {
-  npcs: ['village'],
+  npcs: [
+    'village',
+    'chat',
+    'plan',
+    'review',
+    'kickoff',
+    'post',
+    'studio',
+    'square',
+    ...Array.from({ length: 4 }, (_, k) => `talker${k}` as const),
+    'manager',
+    'bell',
+    'easel',
+  ],
   councils: ['town', 'research', 'design', 'implementation', 'audit', 'training', 'media'],
   scenarios: [
     'farm',

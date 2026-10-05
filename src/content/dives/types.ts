@@ -28,7 +28,13 @@ export type Diagram =
   | 'attempts'
   | 'triage'
   | 'fixdiff'
-  | 'beforeafter';
+  | 'beforeafter'
+  | 'everywhere'
+  | 'fourvoices'
+  | 'disposition'
+  | 'onemanager'
+  | 'nudgegate'
+  | 'facepipe';
 
 /** An interactive panel inside the step card. */
 export type Widget = 'context-lab';

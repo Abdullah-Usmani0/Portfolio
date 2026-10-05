@@ -7,8 +7,7 @@
  * trailhead, ask the manager, hand work in at the grader, then cross the bridge, where a
  * missing plank is the stumble a cohort finds before a real learner does.
  */
-import { riverTop } from './valley.ts';
-import { onValley } from './village.ts';
+import { onValley, riverTop } from './valley.ts';
 
 /** The set piece is drawn closer than the village, so it reads at a glance. */
 export const SCALE = 1.8;

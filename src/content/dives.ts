@@ -9,6 +9,7 @@ import { career } from './dives/career.ts';
 import { context } from './dives/context.ts';
 import { councils } from './dives/councils.ts';
 import { learners } from './dives/learners.ts';
+import { npcs } from './dives/npcs.ts';
 import { scenarios } from './dives/scenarios.ts';
 import type { Dive } from './dives/types.ts';
 
@@ -28,7 +29,7 @@ function proofDive(chapterId: string, focus: string): Dive {
 }
 
 export const DIVES: Readonly<Record<string, Dive>> = {
-  npcs: proofDive('npcs', 'village'),
+  npcs,
   councils,
   scenarios,
   learners,

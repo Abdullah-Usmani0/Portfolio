@@ -4,6 +4,7 @@ import { Kernel, Loops, SkillOps } from './councils.tsx';
 import { AttentionBars, AttentionCurve, FaqMeter, Failures, FirstWord } from './context.tsx';
 import { AdLab, Honours, Kit, Logs, NlSql, Research, ZeroBoard } from './career.tsx';
 import { AskChat, Attempts, BeforeAfter, ColdRead, FixDiff, Personas, Triage } from './learners.tsx';
+import { Disposition, Everywhere, FacePipe, FourVoices, NudgeGate, OneManager } from './npcs.tsx';
 import { Crate, FarmLoops, Machinery, Plain, Review, Wgll } from './scenarios.tsx';
 
 /**
@@ -46,4 +47,10 @@ export const DIAGRAMS: Readonly<Record<Diagram, DiagramSpec>> = {
   triage: { wide: 'panel', render: () => <Triage />, inline: () => <Triage /> },
   fixdiff: { wide: 'panel', render: () => <FixDiff />, inline: () => <FixDiff /> },
   beforeafter: { wide: 'panel', render: () => <BeforeAfter />, inline: () => <BeforeAfter /> },
+  everywhere: { wide: 'panel', render: () => <Everywhere />, inline: () => <Everywhere /> },
+  fourvoices: { wide: 'panel', render: () => <FourVoices />, inline: () => <FourVoices /> },
+  disposition: { wide: 'panel', render: () => <Disposition />, inline: () => <Disposition /> },
+  onemanager: { wide: 'panel', render: () => <OneManager />, inline: () => <OneManager /> },
+  nudgegate: { wide: 'panel', render: () => <NudgeGate />, inline: () => <NudgeGate /> },
+  facepipe: { wide: 'panel', render: () => <FacePipe />, inline: () => <FacePipe /> },
 };

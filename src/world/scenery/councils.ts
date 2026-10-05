@@ -17,8 +17,7 @@ import {
 } from './interiors.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
-import { riverTop } from './valley.ts';
-import { onValley } from './village.ts';
+import { onValley, riverTop } from './valley.ts';
 
 /**
  * The council town: six buildings for the six councils of agents, each with its own shape,
