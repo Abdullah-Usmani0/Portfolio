@@ -1,121 +1,791 @@
 @import 'tailwindcss';
-@import '@fontsource-variable/bricolage-grotesque';
-@import '@fontsource-variable/fraunces/soft-italic.css';
-@import '@fontsource-variable/inter';
-@import '@fontsource-variable/jetbrains-mono';
+@import 'lenis/dist/lenis.css';
+@import '@fontsource-variable/geist/wght.css';
+@import '@fontsource-variable/geist-mono/wght.css';
+@import '@fontsource/instrument-serif/latin-400.css';
+@import '@fontsource/instrument-serif/latin-400-italic.css';
 
-/* Design tokens — the single source for colour, type and motion (refined in Claude Design). */
+/*
+ * Layout: a 12-column editorial grid with wide margins. Behind it, one day of light (set
+ * from scroll by src/motion) moves from dawn to the small hours and back to sunrise.
+ * Geist carries the words, Instrument Serif italic marks the few that matter, Geist Mono
+ * labels the hours.
+ */
 @theme {
-  --color-night: #07080a;
-  --color-ink: #0e1014;
-  --color-ink-2: #151820;
-  --color-line: #232733;
-  --color-text: #edeef0;
-  --color-muted: #9aa0aa;
-  --color-lime: #c6ff3d;
-  --color-cyan: #3de0ff;
-  --color-amber: #ffb547;
-  --color-coral: #ff6b5c;
-  --color-alpenglow: #ff9db0;
-  --color-snow: #f4f7fb;
+  --font-sans: 'Geist Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-serif: 'Instrument Serif', ui-serif, Georgia, 'Times New Roman', serif;
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-soft: cubic-bezier(0.65, 0, 0.35, 1);
+}
 
-  --font-display: 'Bricolage Grotesque Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-serif: 'Fraunces Variable', ui-serif, Georgia, serif;
-  --font-sans: 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono Variable', ui-monospace, monospace;
+@theme inline {
+  --color-bg: var(--bg);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+}
 
-  --ease-zv-out: cubic-bezier(0.22, 1, 0.36, 1);
-  --ease-zv-in: cubic-bezier(0.55, 0, 1, 0.45);
+/* Registered so the text colour can glide when the page crosses from day into night. */
+@property --ink {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #111114;
+}
+
+@property --muted {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #5c5a65;
 }
 
 :root {
-  --dur-micro: 120ms;
-  --dur-ui: 240ms;
-  --dur-panel: 480ms;
-  --glass: rgb(10 12 16 / 0.62);
-  --glass-line: rgb(255 255 255 / 0.08);
-  color-scheme: dark;
+  --bg: #e8e4ec;
+  --bg-rgb: 232 228 236;
+  --glow: #f5c9b3;
+  --glow-y: 156%;
+  --ink: #111114;
+  --muted: #5c5a65;
+  --line: color-mix(in oklab, var(--ink) 15%, transparent);
+  --firefly: #c6ff3d;
+  --gutter: clamp(20px, 4.2vw, 64px);
+  color-scheme: light;
+  transition:
+    --ink 800ms var(--ease-soft),
+    --muted 800ms var(--ease-soft);
 }
 
-html,
-body,
-#root {
-  height: 100%;
+html {
+  background: var(--bg);
 }
 
 body {
   margin: 0;
-  background: var(--color-night);
-  color: var(--color-text);
+  background: var(--bg);
+  color: var(--ink);
   font-family: var(--font-sans);
+  font-size: 17px;
+  line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
+}
+
+::selection {
+  background: color-mix(in oklab, var(--ink) 88%, transparent);
+  color: var(--bg);
+}
+
+:focus-visible {
+  outline: 2px solid var(--ink);
+  outline-offset: 4px;
+  border-radius: 2px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  font-weight: inherit;
+  text-wrap: balance;
+}
+
+p,
+ol,
+ul,
+dl,
+dd {
+  margin: 0;
+  padding: 0;
+}
+
+ol,
+ul {
+  list-style: none;
+}
+
+em {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-weight: 400;
 }
 
 .tabular {
   font-variant-numeric: tabular-nums;
 }
 
-/* Dark glass panel: reads over both the day and the night world. */
-.glass {
-  background: var(--glass);
-  border: 1px solid var(--glass-line);
-  backdrop-filter: blur(18px) saturate(1.2);
-  -webkit-backdrop-filter: blur(18px) saturate(1.2);
+.text-muted {
+  color: var(--muted);
 }
 
-/* A panel drifts in like a leaf settling on water. */
-@keyframes settle {
-  from {
-    opacity: 0;
-    transform: translateY(14px);
-    filter: blur(6px);
-  }
-  to {
-    opacity: 1;
-    transform: none;
-    filter: none;
-  }
+.wrap {
+  width: 100%;
+  max-width: 1520px;
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+  box-sizing: border-box;
 }
 
-.settle {
-  animation: settle var(--dur-panel) var(--ease-zv-out) both;
+/* The light. The ground colour is the page; the glow is the sun or the moon over it. */
+.sky {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: radial-gradient(130vmax 80vmax at 50% var(--glow-y), var(--glow), transparent 66%);
 }
 
-/* Scroll reveals: the same leaf-on-water settle, driven by an IntersectionObserver. */
-.reveal {
+/* Before dawn: the night the intro lifts. Hidden unless the intro is playing. */
+.veil {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+  background: #0b0d14;
   opacity: 0;
-  transform: translateY(18px);
-  filter: blur(6px);
+  visibility: hidden;
+}
+
+main,
+.footer {
+  position: relative;
+  z-index: 1;
+}
+
+/* ——— Type scale ——— */
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.display-xl {
+  font-size: clamp(3.3rem, 9.4vw, 10.25rem);
+  font-weight: 500;
+  line-height: 0.9;
+  letter-spacing: -0.052em;
+}
+
+.display-xl em {
+  font-size: 1.1em;
+  letter-spacing: -0.03em;
+  line-height: 0.8;
+}
+
+.display-l {
+  font-size: clamp(2.35rem, 5.1vw, 5rem);
+  font-weight: 500;
+  line-height: 0.98;
+  letter-spacing: -0.042em;
+}
+
+.display-l em {
+  font-size: 1.08em;
+  letter-spacing: -0.02em;
+}
+
+.lead {
+  font-size: clamp(1.14rem, 1.55vw, 1.5rem);
+  line-height: 1.42;
+  letter-spacing: -0.014em;
+}
+
+/* ——— Links and small controls ——— */
+.link {
+  color: inherit;
+  text-decoration: none;
+  background: linear-gradient(currentColor, currentColor) 0 100% / 0% 1px no-repeat;
+  transition: background-size 600ms var(--ease-out-expo);
+}
+
+.link:hover,
+.link:focus-visible {
+  background-size: 100% 1px;
+}
+
+.pill {
+  appearance: none;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--ink);
+  font: 500 11.5px/1 var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 9px 14px;
+  cursor: pointer;
   transition:
-    opacity 900ms var(--ease-zv-out),
-    transform 900ms var(--ease-zv-out),
-    filter 900ms var(--ease-zv-out);
+    background-color 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo),
+    transform 160ms var(--ease-out-expo);
 }
 
-.reveal-in {
-  opacity: 1;
-  transform: none;
-  filter: none;
+.pill:hover {
+  background: var(--ink);
+  color: var(--bg);
 }
 
-/* Lenis owns the smoothing; the browser's own smooth-scroll would fight it. */
-html.lenis,
-html.lenis body {
-  height: auto;
+.pill:active {
+  transform: scale(0.96);
 }
 
-.lenis.lenis-smooth {
-  scroll-behavior: auto !important;
+/* ——— Nav ——— */
+.nav {
+  position: fixed;
+  inset: 0 0 auto;
+  z-index: 50;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 16px;
+  padding: calc(env(safe-area-inset-top, 0px) + 20px) var(--gutter) 22px;
+  background: linear-gradient(rgb(var(--bg-rgb) / 0.94), rgb(var(--bg-rgb) / 0));
+  font-size: 14px;
+  letter-spacing: -0.01em;
+}
+
+.nav-name {
+  justify-self: start;
+  color: inherit;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.clock-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  letter-spacing: 0.06em;
+}
+
+.clock-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--glow) 55%, var(--ink));
+  box-shadow: 0 0 0 4px color-mix(in oklab, var(--glow) 40%, transparent);
+}
+
+.nav-links {
+  justify-self: end;
+  display: flex;
+  gap: clamp(14px, 2.2vw, 32px);
+}
+
+.nav-links a {
+  color: inherit;
+}
+
+@media (max-width: 640px) {
+  .nav {
+    grid-template-columns: 1fr auto;
+  }
+
+  .nav-links {
+    display: none;
+  }
+
+  .clock-label {
+    justify-self: end;
+  }
+}
+
+/* ——— Hero ——— */
+.hero {
+  position: relative;
+  min-height: 100svh;
+  display: flex;
+  align-items: flex-end;
+}
+
+.hero-inner {
+  display: grid;
+  gap: clamp(20px, 3.2vh, 36px);
+  padding-top: 120px;
+  padding-bottom: clamp(28px, 6vh, 72px);
+}
+
+.hero-name {
+  margin-left: -0.04em;
+}
+
+.hero-foot {
+  display: grid;
+  gap: 36px;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  align-items: end;
+  margin-top: clamp(8px, 2vh, 24px);
+}
+
+.hero-lead {
+  grid-column: 1 / span 5;
+  max-width: 30ch;
+}
+
+.metrics {
+  grid-column: 7 / span 6;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--line);
+}
+
+.metric-stat {
+  order: -1;
+  font-size: clamp(1.5rem, 2.4vw, 2.25rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+  line-height: 1;
+}
+
+.metric-label {
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--muted);
+}
+
+.scroll-cue {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  width: fit-content;
+  margin-top: clamp(12px, 3vh, 40px);
+  color: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-decoration: none;
+}
+
+.scroll-cue-line {
+  position: relative;
+  width: 44px;
+  height: 1px;
+  overflow: hidden;
+  background: var(--line);
+}
+
+.scroll-cue-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform: translateX(-100%);
+  animation: cue 2.8s var(--ease-soft) infinite;
+}
+
+@keyframes cue {
+  50% {
+    transform: translateX(0);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (max-width: 900px) {
+  .hero-foot {
+    grid-template-columns: 1fr;
+  }
+
+  .hero-lead,
+  .metrics {
+    grid-column: 1 / -1;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 18px 16px;
+  }
+}
+
+/* ——— Chapters ——— */
+.chapter,
+.index {
+  padding-block: clamp(96px, 17vh, 200px) 0;
+}
+
+.chapter:last-of-type {
+  padding-bottom: clamp(96px, 16vh, 180px);
+}
+
+.rule {
+  height: 1px;
+  background: var(--line);
+}
+
+.chapter-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 24px;
+  padding-top: 22px;
+}
+
+.chapter-meta {
+  grid-column: 1 / span 3;
+  align-self: start;
+  position: sticky;
+  top: 104px;
+  display: grid;
+  gap: 2px;
+}
+
+.chapter-clock {
+  font-size: clamp(1.4rem, 2vw, 1.9rem);
+  font-weight: 500;
+  letter-spacing: -0.04em;
+}
+
+.chapter-hour {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.15rem;
+  color: var(--muted);
+}
+
+.chapter-body {
+  grid-column: 4 / span 9;
+  display: grid;
+  gap: clamp(22px, 3vh, 34px);
+  min-width: 0;
+}
+
+.chapter-title {
+  max-width: 15ch;
+  padding-top: 8px;
+}
+
+.chapter-lead {
+  max-width: 40ch;
+  color: color-mix(in oklab, var(--ink) 82%, var(--bg));
+}
+
+.proofs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 28px;
+  margin-top: clamp(16px, 3vh, 40px);
+}
+
+.proof {
+  display: grid;
+  align-content: start;
+  gap: 6px;
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+.proof-stat {
+  font-size: clamp(1.6rem, 2.6vw, 2.5rem);
+  font-weight: 500;
+  letter-spacing: -0.045em;
+  line-height: 1.05;
+}
+
+.proof-label {
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 500;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.proof-text {
+  max-width: 34ch;
+  margin-top: 6px;
+  font-size: 15.5px;
+  line-height: 1.55;
+  color: var(--muted);
+}
+
+.stack {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+}
+
+.stack li::before {
+  content: '';
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 9px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+  vertical-align: 2px;
+}
+
+@media (max-width: 900px) {
+  .chapter-grid {
+    grid-template-columns: 1fr;
+    gap: 28px;
+  }
+
+  .chapter-meta,
+  .chapter-body {
+    grid-column: 1 / -1;
+  }
+
+  .chapter-meta {
+    position: static;
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+  }
+
+  .proofs {
+    grid-template-columns: 1fr;
+    gap: 22px;
+  }
+}
+
+/* ——— Inside the mind ——— */
+.blocks {
+  margin-top: clamp(12px, 2vh, 28px);
+  border-top: 1px solid var(--line);
+}
+
+.block-row {
+  position: relative;
+  display: grid;
+  grid-template-columns: 3.2rem minmax(0, 13rem) minmax(0, 1fr);
+  gap: 16px;
+  align-items: baseline;
+  padding-block: 15px;
+  border-bottom: 1px solid var(--line);
+}
+
+.block-row[data-cache] {
+  margin-top: 30px;
+  border-top: 1px dashed color-mix(in oklab, var(--firefly) 70%, transparent);
+}
+
+.block-row[data-cache]::before {
+  content: 'Cache line';
+  position: absolute;
+  top: -27px;
+  left: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--firefly);
+}
+
+.block-index {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.block-name {
+  font-size: clamp(1.05rem, 1.4vw, 1.3rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.block-text {
+  color: var(--muted);
+  font-size: 15.5px;
+}
+
+.cache-note {
+  max-width: 52ch;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.techniques {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 28px 32px;
+  margin-top: clamp(16px, 3vh, 40px);
+}
+
+.technique {
+  padding-top: 16px;
+  border-top: 1px solid var(--line);
+}
+
+@media (max-width: 640px) {
+  .block-row {
+    grid-template-columns: 2.4rem minmax(0, 1fr);
+  }
+
+  .block-text {
+    grid-column: 2;
+  }
+
+  .techniques {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ——— The ascent ——— */
+.camps {
+  margin-top: clamp(16px, 3vh, 40px);
+  border-top: 1px solid var(--line);
+}
+
+.camp {
+  display: grid;
+  grid-template-columns: 7.5rem 8rem minmax(0, 1fr) auto;
+  gap: 20px;
+  align-items: baseline;
+  padding-block: 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.camp-alt {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.camp-name {
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: 1.25rem;
+}
+
+.camp-org {
+  font-size: clamp(1.1rem, 1.5vw, 1.35rem);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+
+.camp-dates {
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .camp {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 6px 16px;
+  }
+
+  .camp-alt {
+    order: 2;
+  }
+
+  .camp-name {
+    order: 1;
+  }
+
+  .camp-body {
+    order: 3;
+    grid-column: 1 / -1;
+  }
+
+  .camp-dates {
+    order: 4;
+    grid-column: 1 / -1;
+  }
+}
+
+/* ——— Index ——— */
+.index-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 40px;
+  padding-top: 22px;
+}
+
+.index-list {
+  display: grid;
+  margin-top: 18px;
+}
+
+.index-item {
+  padding-block: 14px;
+  border-bottom: 1px solid var(--line);
+}
+
+.index-name {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  font-weight: 500;
+  letter-spacing: -0.015em;
+}
+
+.index-year {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--muted);
+}
+
+.index-item .proof-text {
+  margin-top: 4px;
+}
+
+@media (max-width: 900px) {
+  .index-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ——— Summit and contact ——— */
+.summit {
+  padding-bottom: clamp(80px, 14vh, 160px);
+}
+
+.contact {
+  display: grid;
+  gap: 16px;
+  margin-top: clamp(16px, 4vh, 48px);
+}
+
+.contact-email {
+  font-size: clamp(1.4rem, 3.2vw, 2.6rem);
+  font-weight: 500;
+  letter-spacing: -0.035em;
+}
+
+.contact-links {
+  display: flex;
+  gap: 28px;
+  font-size: 16px;
+}
+
+.footer {
+  padding-block: 28px calc(env(safe-area-inset-bottom, 0px) + 28px);
+  border-top: 1px solid var(--line);
+  font-size: 13px;
+}
+
+.footer-inner {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 24px;
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *,
-  *::before,
-  *::after {
-    animation-duration: 1ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 1ms !important;
-    scroll-behavior: auto !important;
+  .scroll-cue-line::after {
+    animation: none;
+    transform: none;
   }
 }

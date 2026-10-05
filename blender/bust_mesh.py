@@ -4,7 +4,7 @@ The browser samples firefly points on this surface at load time, so only a small
 shipped (never a point cloud, never anyone's likeness — the MakeHuman base is a neutral
 average human, released CC0 in 2020).
 
-Out: public/models/bust_m0.bin
+Out: src/assets/bust_m0.bin
   'ZVB1' | u32 vertex count | u32 triangle count | f32 xyz… | u16 indices…
   Units: the bust's height is 1.0; origin at the centre of its base; it faces +Z.
 
@@ -18,7 +18,7 @@ import urllib.request
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 CACHE = os.path.join(HERE, ".cache", "bust", "base.obj")
-OUT = os.path.join(HERE, "..", "public", "models", "bust_m0.bin")
+OUT = os.path.join(HERE, "..", "src", "assets", "bust_m0.bin")
 URL = "https://raw.githubusercontent.com/makehumancommunity/makehuman/master/makehuman/data/3dobjs/base.obj"
 
 KEEP_GROUPS = {"body", "helper-l-eye", "helper-r-eye"}

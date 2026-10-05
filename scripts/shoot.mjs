@@ -1,57 +1,62 @@
 #!/usr/bin/env node
-// Screenshot sweep: loads the built site in headless Chromium (SwiftShader WebGL), waits for
-// the stage to report ready, then captures each act. State is asserted through the
-// read-only `window.__stage` hook, not by guessing from pixels.
+// Screenshot sweep for reviewing the page: hero after the intro, then each section.
+// --file renders the artifact page inside a copy of the artifact host's skeleton, so the
+// review sees what the live link shows.
 //
-//   node scripts/shoot.mjs --url http://127.0.0.1:4173 --out shots --tier mid --size 1600x900
-import { mkdirSync } from 'node:fs';
-import { join } from 'node:path';
+//   node scripts/shoot.mjs --file dist-artifact/page.html --out shots --size 1440x900
+//   node scripts/shoot.mjs --url http://127.0.0.1:4173 --out shots --size 390x844
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { join, resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 import { chromium } from '@playwright/test';
 
 const arg = (name, fallback) => {
   const i = process.argv.indexOf(`--${name}`);
   return i > -1 ? process.argv[i + 1] : fallback;
 };
-const url = arg('url', 'http://127.0.0.1:4173');
 const out = arg('out', 'shots');
-const tier = arg('tier', 'mid');
-const [width, height] = arg('size', '1600x900').split('x').map(Number);
-const acts = (arg('acts', '0,1,2,3,4') ?? '').split(',').map(Number);
-const settleMs = Number(arg('settle', '6000'));
-const extra = arg('query', '');
+const [width, height] = arg('size', '1440x900').split('x').map(Number);
+const sections = arg('sections', 'npcs,councils,scenarios,learners,voice,mind,ascent,index,summit').split(',');
+const reduced = process.argv.includes('--reduced');
 mkdirSync(out, { recursive: true });
 
-const browser = await chromium.launch({
-  args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist', '--enable-webgl'],
+let url = arg('url', '');
+const file = arg('file', '');
+if (file) {
+  // The host's skeleton: charset + viewport meta and its small reset (see the Artifact docs).
+  const shell = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}body{margin:0;font:14px system-ui;background:#fafaf9}img{max-width:100%}[hidden]{display:none!important}</style></head><body>${readFileSync(file, 'utf8')}</body></html>`;
+  const wrapped = resolve(out, '_artifact.html');
+  writeFileSync(wrapped, shell);
+  url = pathToFileURL(wrapped).href;
+}
+if (!url) throw new Error('pass --file or --url');
+
+const browser = await chromium.launch();
+const page = await browser.newPage({
+  viewport: { width, height },
+  deviceScaleFactor: 1,
+  reducedMotion: reduced ? 'reduce' : 'no-preference',
+  isMobile: width < 600,
+  hasTouch: width < 600,
 });
-const page = await browser.newPage({ viewport: { width, height }, deviceScaleFactor: 1 });
 const logs = [];
-page.on('console', (m) => logs.push(`[${m.type()}] ${m.text()}`));
+page.on('console', (m) => (m.type() === 'error' || m.type() === 'warning') && logs.push(`[${m.type()}] ${m.text()}`));
 page.on('pageerror', (e) => logs.push(`[pageerror] ${e.message}`));
 
-const t0 = Date.now();
-await page.goto(`${url}/?test=1&tier=${tier}${extra ? `&${extra}` : ''}`, { waitUntil: 'networkidle' });
-await page.waitForFunction(() => window.__stage?.ready && window.__stage.frames > 8, null, { timeout: 180_000 });
-console.log(`ready in ${((Date.now() - t0) / 1000).toFixed(1)}s`, await page.evaluate(() => window.__stage));
-// Let the intro crane finish.
-await page.waitForTimeout(settleMs);
+await page.goto(`${url}${url.includes('?') ? '&' : '?'}test=1`, { waitUntil: 'load' });
+await page.waitForFunction(() => window.__site !== undefined, null, { timeout: 30_000 });
+await page.waitForTimeout(Number(arg('intro', '4200')));
+const tag = `${width}x${height}`;
+await page.screenshot({ path: join(out, `${tag}-00-hero.png`) });
+console.log('hero', await page.evaluate(() => ({ look: window.__site.look, smooth: window.__site.smooth })));
 
-for (const act of acts) {
-  await page.evaluate((i) => {
-    const sec = document.querySelectorAll('main > section')[i];
-    if (!sec) return;
-    const r = sec.getBoundingClientRect();
-    window.scrollTo({ top: r.top + window.scrollY + r.height / 2 - window.innerHeight / 2, behavior: 'instant' });
-  }, act);
-  const f0 = await page.evaluate(() => window.__stage.frames);
-  await page.waitForTimeout(settleMs);
-  const s = await page.evaluate(() => window.__stage);
-  const fps = ((s.frames - f0) / (settleMs / 1000)).toFixed(1);
-  const file = join(out, `act${act}.png`);
-  await page.screenshot({ path: file });
-  console.log(`act ${act}: stage act=${s.act} tod=${s.tod.toFixed(2)} ~${fps} fps -> ${file}`);
+for (const [i, id] of sections.entries()) {
+  await page.evaluate((s) => window.__site.jump(s), id);
+  await page.waitForTimeout(Number(arg('settle', '1800')));
+  const name = join(out, `${tag}-${String(i + 1).padStart(2, '0')}-${id}.png`);
+  await page.screenshot({ path: name });
+  console.log(id, await page.evaluate(() => window.__site.look));
 }
 
-const errors = logs.filter((l) => /error|warn/i.test(l));
-if (errors.length) console.log(errors.slice(0, 20).join('\n'));
+if (logs.length) console.log(logs.slice(0, 20).join('\n'));
 await browser.close();

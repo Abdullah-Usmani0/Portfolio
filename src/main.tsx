@@ -2,27 +2,21 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import { App } from './App.tsx';
-import { detectTier } from './stage/device.ts';
-import { stats } from './stage/stats.ts';
-import { stage } from './stage/store.ts';
+import { scroller } from './motion/SmoothScroll.tsx';
+import { useDay } from './motion/store.ts';
 
-// Pick the quality tier before anything mounts, so the canvas starts at the right DPR.
-stage.getState().setTier(detectTier());
-
-// A read-only test hook (Playwright asserts on state, not pixels) — dev, ?debug or ?test only.
+// A read-only hook for tests and screenshots: state, not pixels. Dev, ?debug or ?test only.
 const params = new URLSearchParams(window.location.search);
 if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
-  // Look-dev only: drive the sun dial from a script.
-  Object.assign(window, {
-    __setTod: (t: number | null) => stage.getState().setTodOverride(t),
-    __setMindPond: (p: boolean | null) => stage.getState().setMindPond(p),
-  });
-  Object.defineProperty(window, '__stage', {
+  Object.defineProperty(window, '__site', {
     configurable: true,
-    get: () => {
-      const s = stage.getState();
-      return { ready: s.ready, tier: s.tier, act: s.act, tod: s.tod, progress: s.progress, frames: stats.frames, cam: stats.cam };
-    },
+    get: () => ({
+      look: useDay.getState().look.label,
+      dark: useDay.getState().dark,
+      smooth: document.documentElement.classList.contains('lenis'),
+      /** Jump straight to a section (by id) without the glide. */
+      jump: (id: string) => scroller.lenis?.scrollTo(`#${id}`, { immediate: true, force: true }),
+    }),
   });
 }
 

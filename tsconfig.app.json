@@ -20,10 +20,9 @@
     "skipLibCheck": true,
     "noEmit": true,
     "paths": {
-      "@/*": ["./src/*"],
-      "@content/*": ["./content/*"]
+      "@/*": ["./src/*"]
     }
   },
-  "include": ["src", "content"],
+  "include": ["src"],
   "exclude": ["src/sim", "src/**/*.test.ts", "src/**/*.test.tsx"]
 }

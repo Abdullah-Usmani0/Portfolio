@@ -12,3 +12,4 @@ test-results/
 blender/.cache/
 blender/out/
 *.blend1
+dist-artifact/
