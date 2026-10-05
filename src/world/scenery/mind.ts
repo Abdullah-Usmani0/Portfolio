@@ -7,6 +7,7 @@ import { buildBustTargets, CONTEXT_LAYERS, LAYER_COLORS, parseBustMesh, stackTar
 import { shared } from '../gl/flat.ts';
 import { pointScale } from '../gl/sprites.ts';
 import { sceneX } from '../journey.ts';
+import { registerAnchors } from '../anchors.ts';
 import { pointer } from '../pointer.ts';
 import type { Frame, Layer } from './types.ts';
 
@@ -78,6 +79,7 @@ export function mind(maxPoints: number): Layer {
   holder.position.set(sceneX('mind') * P + 330, BASE_Y, 0);
   holder.scale.setScalar(SCALE);
   group.add(holder);
+  registerAnchors('mind', group, { bust: { x: holder.position.x, y: BASE_Y + SCALE * 0.52, w: SCALE * 1.6, h: SCALE * 1.3 } });
 
   const uniforms = {
     uTime: shared.uTime,

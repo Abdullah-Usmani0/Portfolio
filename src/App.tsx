@@ -4,7 +4,7 @@ import { useGSAP } from '@gsap/react';
 import { playIntro, sceneCards } from '@/motion/choreography.ts';
 import { SmoothScroll } from '@/motion/SmoothScroll.tsx';
 import { intro } from '@/motion/store.ts';
-import { Details } from '@/sections/Details.tsx';
+import { Dive } from '@/sections/Dive.tsx';
 import { Hero } from '@/sections/Hero.tsx';
 import { Journey } from '@/sections/Journey.tsx';
 import { Nav } from '@/sections/Nav.tsx';
@@ -47,7 +47,7 @@ export function App() {
           <Journey />
           <Summit />
         </main>
-        <Details />
+        <Dive />
       </div>
     </SmoothScroll>
   );

@@ -9,8 +9,12 @@ export const useDay = create<{ label: string; clock: string; dark: boolean; scen
   scene: 0,
 }));
 
-/** Which details panel is open, by scene id. */
-export const usePanel = create<{ open: string | null }>(() => ({ open: null }));
+/** The open deep dive, if any: the scene it belongs to and the step on screen. */
+export const useDive = create<{ scene: string | null; step: number }>(() => ({ scene: null, step: 0 }));
+
+/** Open a scene's dive at a step (0 = its overview). */
+export const openDive = (scene: string, step = 0) => useDive.setState({ scene, step });
+export const closeDive = () => useDive.setState({ scene: null });
 
 /** Where the viewport centre sits among the scenes: 0 = first scene centred, 1 = the next, … */
 export const progress = { s: 0 };

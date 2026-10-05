@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
+import { registerAnchors } from '../anchors.ts';
 import { bandGeometry } from '../gl/water.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
@@ -14,6 +15,7 @@ import { onValley } from './village.ts';
  */
 export function farm(group: THREE.Group) {
   const cx = onValley('scenarios', 300);
+  registerAnchors('scenarios', group, { farm: { x: cx, y: groundY(cx) + 70, w: 1100, h: 260 } });
   const x0 = cx - 620;
   const x1 = cx + 640;
   const roll = fbm(91, 3);

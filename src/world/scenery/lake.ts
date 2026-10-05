@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { shared } from '../gl/flat.ts';
+import { registerAnchors } from '../anchors.ts';
 import { peopleMaterial, pointScale } from '../gl/sprites.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
@@ -43,6 +44,7 @@ function screenMaterial() {
 export function lake(group: THREE.Group) {
   const cx = LAKE_X;
   const shore = (x: number) => riverTop(x) + 1;
+  registerAnchors('voice', group, { stage: { x: cx + 40, y: shore(cx) + 50, w: 900, h: 230 } });
 
   // The stage: a stepped stone plinth carrying the screen, and an audience on the shore
   // in front of it, watching it speak.

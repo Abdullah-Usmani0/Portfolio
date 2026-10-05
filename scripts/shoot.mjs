@@ -16,7 +16,7 @@ const arg = (name, fallback) => {
 };
 const out = arg('out', 'shots');
 const [width, height] = arg('size', '1440x900').split('x').map(Number);
-const sections = arg('sections', 'npcs,councils,scenarios,learners,voice,mind,ascent,index,summit').split(',');
+const sections = arg('sections', 'npcs,councils,scenarios,learners,voice,mind,ascent,summit').split(',').filter(Boolean);
 const reduced = process.argv.includes('--reduced');
 mkdirSync(out, { recursive: true });
 
@@ -56,6 +56,24 @@ for (const [i, id] of sections.entries()) {
   const name = join(out, `${tag}-${String(i + 1).padStart(2, '0')}-${id}.png`);
   await page.screenshot({ path: name });
   console.log(id, await page.evaluate(() => window.__site.look));
+}
+
+// --dive a,b: open each scene's deep dive and shoot every step (or --steps 0,3,7).
+for (const dive of arg('dive', '').split(',').filter(Boolean)) {
+  await page.evaluate((s) => window.__site.jump(s), dive);
+  await page.waitForTimeout(1500);
+  await page.evaluate((s) => window.__site.dive(s, 0), dive);
+  await page.waitForSelector('.dive-dots li');
+  const count = await page.evaluate(() => document.querySelectorAll('.dive-dots li').length);
+  const steps = arg('steps', '') ? arg('steps', '').split(',').map(Number).filter((k) => k < count) : [...Array(count).keys()];
+  for (const step of steps) {
+    await page.evaluate(([s, k]) => window.__site.dive(s, k), [dive, step]);
+    await page.waitForTimeout(Number(arg('settle', '2600')));
+    await page.screenshot({ path: join(out, `${tag}-dive-${dive}-${String(step).padStart(2, '0')}.png`) });
+    console.log('dive', dive, step, await page.evaluate(() => document.querySelector('.dive-title')?.textContent));
+  }
+  await page.evaluate(() => window.__site.dive(null));
+  await page.waitForTimeout(2200);
 }
 
 if (logs.length) console.log(logs.slice(0, 20).join('\n'));

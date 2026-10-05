@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
+import { registerAnchors } from '../anchors.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
 import { bandGeometry, mistMaterial, waterfallMaterial } from '../gl/water.ts';
 import type { Frame } from './types.ts';
@@ -53,6 +54,7 @@ export function provingGrounds(group: THREE.Group) {
   const right = bx + span / 2;
   const deckY = riverTop(bx) + 30 * SCALE;
   const ramp = 150;
+  registerAnchors('learners', group, { bridge: { x: bx - 50, y: deckY + 40, w: 560, h: 270 } });
 
   // The trail climbs to the abutments, crosses the deck, and comes back down.
   const deck = (x: number) => deckY + Math.sin(Math.PI * ((x - left) / span)) * 7 * SCALE;

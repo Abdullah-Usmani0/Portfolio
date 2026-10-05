@@ -66,6 +66,8 @@ export function peopleMaterial() {
     uniforms,
     transparent: true,
     depthWrite: false,
+    // People facing left are mirrored, which flips their winding; draw both sides.
+    side: THREE.DoubleSide,
     vertexShader: /* glsl */ `
       attribute vec3 aColor;
       attribute float aWalk;

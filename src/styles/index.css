@@ -417,110 +417,7 @@ main,
   font-size: 13px;
 }
 
-/* ——— Details panel ——— */
-.panel-root {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  pointer-events: none;
-}
-
-.panel-backdrop {
-  position: absolute;
-  inset: 0;
-  background: rgb(10 8 18 / 0.36);
-  opacity: 0;
-  transition: opacity 600ms var(--ease-out-expo);
-}
-
-.panel {
-  position: absolute;
-  inset: 0 0 0 auto;
-  width: min(640px, 100vw);
-  box-sizing: border-box;
-  overflow-y: auto;
-  overscroll-behavior: contain;
-  display: grid;
-  align-content: start;
-  gap: 26px;
-  padding: calc(env(safe-area-inset-top, 0px) + 28px) clamp(22px, 4vw, 48px) calc(env(safe-area-inset-bottom, 0px) + 48px);
-  background: var(--paper);
-  color: var(--ink);
-  transform: translateX(104%);
-  transition: transform 800ms var(--ease-out-expo);
-  outline: none;
-}
-
-.panel-root.is-open {
-  pointer-events: auto;
-}
-
-.panel-root.is-open .panel-backdrop {
-  opacity: 1;
-}
-
-.panel-root.is-open .panel {
-  transform: none;
-}
-
-.panel-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.panel-title {
-  font-size: clamp(2rem, 4vw, 3.1rem);
-  font-weight: 500;
-  line-height: 1;
-  letter-spacing: -0.04em;
-}
-
-.panel-title em {
-  font-size: 1.08em;
-}
-
-.panel-lead {
-  font-size: 1.12rem;
-  line-height: 1.5;
-  letter-spacing: -0.01em;
-  color: color-mix(in oklab, var(--ink) 84%, var(--paper));
-}
-
-.proofs {
-  display: grid;
-  gap: 22px;
-}
-
-.proof {
-  display: grid;
-  gap: 4px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
-}
-
-.proof-stat {
-  font-size: 1.9rem;
-  font-weight: 500;
-  letter-spacing: -0.045em;
-  line-height: 1.05;
-}
-
-.proof-label {
-  font-family: var(--font-mono);
-  font-size: 11.5px;
-  font-weight: 500;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--muted);
-}
-
-.proof-text {
-  font-size: 15px;
-  line-height: 1.55;
-  color: var(--muted);
-}
-
+/* ——— Built-with chips ——— */
 .stack {
   display: flex;
   flex-wrap: wrap;
@@ -542,142 +439,450 @@ main,
   vertical-align: 2px;
 }
 
-.blocks {
-  border-top: 1px solid var(--line);
+/* ——— Deep dive ——— */
+/* While a dive is open the scene's own card and the nav step aside; they come back once the camera is home. */
+.scene-sticky {
+  transition: opacity 700ms var(--ease-out-expo) 1100ms;
 }
 
-.block-row {
-  position: relative;
-  display: grid;
-  grid-template-columns: 2.6rem minmax(0, 9rem) minmax(0, 1fr);
-  gap: 12px;
-  align-items: baseline;
-  padding-block: 12px;
-  border-bottom: 1px solid var(--line);
+:root[data-dive] .scene-sticky,
+:root[data-dive] .nav {
+  /* !important: the intro leaves inline opacity and visibility on the nav. */
+  opacity: 0 !important;
+  visibility: hidden !important;
+  pointer-events: none;
+  transition:
+    opacity 320ms ease,
+    visibility 0s linear 320ms;
 }
 
-.block-row[data-cache] {
-  margin-top: 28px;
-  border-top: 1px dashed #5e8c12;
+.dive {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  color: var(--cream);
 }
 
-.block-row[data-cache]::before {
-  content: 'Cache line';
-  position: absolute;
-  top: -24px;
+.dive-back {
+  position: fixed;
+  top: calc(env(safe-area-inset-top, 0px) + 22px);
+  left: var(--gutter);
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 11px 17px 11px 15px;
+  border: 1px solid rgb(246 241 234 / 0.38);
+  border-radius: 999px;
+  background: rgb(12 11 20 / 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  color: var(--cream);
+  font: 500 14px/1 var(--font-sans);
+  cursor: pointer;
+  pointer-events: auto;
+  animation: dive-fade 700ms var(--ease-out-expo) 600ms both;
+  transition:
+    background-color 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo);
+}
+
+.dive-back:hover {
+  background: var(--cream);
+  color: #15131a;
+}
+
+.dive-pin {
+  position: fixed;
   left: 0;
-  font-family: var(--font-mono);
-  font-size: 11px;
+  top: 0;
+  translate: -50% calc(-100% - 12px);
+  padding: 7px 11px;
+  border: 1px solid rgb(246 241 234 / 0.28);
+  border-radius: 999px;
+  background: rgb(12 11 20 / 0.66);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  color: var(--cream);
+  font: 500 10.5px/1 var(--font-mono);
   letter-spacing: 0.14em;
   text-transform: uppercase;
-  color: #4f7a0c;
+  white-space: nowrap;
+  cursor: pointer;
+  pointer-events: auto;
+  animation: dive-fade 600ms var(--ease-out-expo) 1000ms both;
+  transition:
+    background-color 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo),
+    border-color 300ms var(--ease-out-expo);
 }
 
-.block-index {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
+.dive-pin::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 100%;
+  width: 1px;
+  height: 10px;
+  background: rgb(246 241 234 / 0.5);
 }
 
-.block-name {
+.dive-pin:hover,
+.dive-pin[data-active] {
+  border-color: var(--firefly);
+  background: var(--firefly);
+  color: #15131a;
+}
+
+.dive-card {
+  position: fixed;
+  right: var(--gutter);
+  bottom: clamp(20px, 5vh, 48px);
+  box-sizing: border-box;
+  display: grid;
+  gap: 14px;
+  width: min(440px, calc(100vw - 2 * var(--gutter)));
+  max-height: calc(100svh - 128px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 22px 24px 18px;
+  border: 1px solid rgb(246 241 234 / 0.12);
+  border-radius: 24px;
+  background: rgb(14 12 22 / 0.88);
+  backdrop-filter: blur(16px) saturate(1.1);
+  -webkit-backdrop-filter: blur(16px) saturate(1.1);
+  box-shadow: 0 30px 80px rgb(4 3 10 / 0.45);
+  outline: none;
+  pointer-events: auto;
+  touch-action: pan-y;
+  animation: dive-rise 800ms var(--ease-out-expo) 400ms both;
+}
+
+.dive-eyebrow {
+  color: var(--cream-muted);
+}
+
+.dive-body {
+  display: grid;
+  gap: 12px;
+  animation: dive-step 600ms var(--ease-out-expo) both;
+}
+
+.dive-title {
+  font-size: clamp(1.5rem, 2.1vw, 2rem);
   font-weight: 500;
-  letter-spacing: -0.02em;
+  line-height: 1.05;
+  letter-spacing: -0.035em;
 }
 
-.block-text {
-  font-size: 14.5px;
-  color: var(--muted);
+.dive-line {
+  font-size: 15.5px;
+  line-height: 1.5;
+  letter-spacing: -0.005em;
+  color: var(--cream-muted);
 }
 
-.techniques {
+.dive-points {
   display: grid;
-  gap: 18px;
+  gap: 10px;
+  padding-top: 2px;
 }
 
-.technique {
-  display: grid;
-  gap: 4px;
-  padding-top: 14px;
-  border-top: 1px solid var(--line);
+.dive-points li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgb(246 241 234 / 0.86);
 }
 
-.camps {
-  border-top: 1px solid var(--line);
+.dive-points li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.62em;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--firefly);
+  box-shadow: 0 0 10px rgb(185 239 46 / 0.55);
 }
 
-.camp {
-  display: grid;
-  gap: 4px;
-  padding-block: 16px;
-  border-bottom: 1px solid var(--line);
+.dive .stack {
+  color: var(--cream-muted);
 }
 
-.camp-alt {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.camp-name {
-  font-family: var(--font-serif);
-  font-style: italic;
-  font-size: 15px;
-}
-
-.camp-org {
-  font-size: 1.1rem;
-  font-weight: 500;
-  letter-spacing: -0.02em;
-}
-
-.camp-dates {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  color: var(--muted);
-}
-
-.index-col {
-  display: grid;
-  gap: 8px;
-}
-
-.index-item {
-  padding-block: 11px;
-  border-bottom: 1px solid var(--line);
-}
-
-.index-name {
+.dive-nav {
   display: flex;
+  align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  font-weight: 500;
-  letter-spacing: -0.015em;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid rgb(246 241 234 / 0.1);
 }
 
-.index-year {
-  font-family: var(--font-mono);
-  font-size: 12px;
-  font-weight: 400;
-  color: var(--muted);
+.dive-arrow {
+  appearance: none;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid rgb(246 241 234 / 0.35);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--cream);
+  font: 500 16px/1 var(--font-sans);
+  cursor: pointer;
+  transition:
+    background-color 300ms var(--ease-out-expo),
+    color 300ms var(--ease-out-expo),
+    opacity 300ms var(--ease-out-expo);
+}
+
+.dive-arrow:hover:not(:disabled) {
+  background: var(--cream);
+  color: #15131a;
+}
+
+.dive-arrow:disabled {
+  opacity: 0.28;
+  cursor: default;
+}
+
+.dive-dots {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px;
+}
+
+.dive-dots button {
+  appearance: none;
+  display: block;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(246 241 234 / 0.3);
+  cursor: pointer;
+  transition:
+    width 450ms var(--ease-out-expo),
+    background-color 300ms var(--ease-out-expo);
+}
+
+.dive-dots button[aria-current] {
+  width: 22px;
+  background: var(--firefly);
+}
+
+/* Diagrams drawn over the sky, in the part of the view the card leaves free. */
+.dive-diagram {
+  position: fixed;
+  left: var(--gutter);
+  top: 80px;
+  display: grid;
+  place-items: center;
+  width: calc(60vw - var(--gutter));
+  height: calc(47vh - 80px);
+  pointer-events: none;
+  animation: dive-fade 900ms var(--ease-out-expo) 900ms both;
+}
+
+.dive-diagram .diagram-svg {
+  width: 100%;
+  height: 100%;
+  max-width: 540px;
+  overflow: visible;
+}
+
+.dive-diagram.is-inline {
+  position: static;
+  width: 100%;
+  height: auto;
+  animation: none;
+}
+
+.dive-diagram.is-inline .diagram-svg {
+  height: auto;
+  max-height: 30svh;
+}
+
+/* A thin dark edge keeps labels legible over snow and bright sky. */
+.diagram-label {
+  paint-order: stroke;
+  stroke: rgb(12 11 20 / 0.5);
+  stroke-width: 2.5px;
+  stroke-linejoin: round;
+}
+
+.diagram-label {
+  fill: rgb(246 241 234 / 0.92);
+  font: 500 10.5px var(--font-mono);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.diagram-note {
+  fill: rgb(246 241 234 / 0.62);
+  font: 400 10.5px var(--font-mono);
+  letter-spacing: 0.04em;
+}
+
+.diagram-title {
+  fill: var(--cream);
+  font: italic 400 32px var(--font-serif);
+}
+
+.loop-node {
+  fill: rgb(246 241 234 / 0.85);
+  transform-box: fill-box;
+  transform-origin: center;
+  animation-name: loop-node;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+}
+
+@keyframes loop-node {
+  0%,
+  10%,
+  100% {
+    fill: rgb(246 241 234 / 0.85);
+    transform: scale(1);
+  }
+
+  2% {
+    fill: #b9ef2e;
+    transform: scale(1.9);
+  }
+}
+
+/* The dial shows every setting once, then rests on "auto above a threshold". */
+.kernel-needle {
+  animation: kernel-needle 16s var(--ease-soft) infinite;
+}
+
+@keyframes kernel-needle {
+  0% {
+    transform: rotate(-135deg);
+  }
+
+  8% {
+    transform: rotate(-90deg);
+  }
+
+  16% {
+    transform: rotate(0deg);
+  }
+
+  24% {
+    transform: rotate(45deg);
+  }
+
+  32%,
+  100% {
+    transform: rotate(0deg);
+  }
+}
+
+.kernel-lever {
+  transition: transform 300ms var(--ease-out-expo);
+}
+
+.kernel-lever circle {
+  fill: var(--cream);
+  transition: fill 300ms var(--ease-out-expo);
+}
+
+.kernel-lever[data-on='1'] circle {
+  fill: #ff6a55;
+}
+
+.loops-svg {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  overflow: visible;
+  pointer-events: none;
+  animation: dive-fade 900ms var(--ease-out-expo) 700ms both;
+}
+
+.loops-label {
+  paint-order: stroke;
+  stroke: rgb(12 11 20 / 0.75);
+  stroke-width: 4px;
+}
+
+@keyframes dive-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes dive-rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+}
+
+@keyframes dive-step {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (max-width: 759px) {
+  .dive-card {
+    left: 12px;
+    right: 12px;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    width: auto;
+    max-height: 46svh;
+    padding: 18px 18px 14px;
+    border-radius: 22px;
+  }
+
+  .dive-back {
+    top: calc(env(safe-area-inset-top, 0px) + 14px);
+    left: 14px;
+  }
+
+  /* The step controls stay on the sheet's bottom edge while its words scroll. */
+  .dive-nav {
+    position: sticky;
+    bottom: -14px;
+    margin: 0 -18px -14px;
+    padding: 12px 18px 14px;
+    background: rgb(14 12 22 / 0.97);
+  }
 }
 
 @media (max-width: 640px) {
-  .block-row {
-    grid-template-columns: 2.2rem minmax(0, 1fr);
-  }
-
-  .block-text {
-    grid-column: 2;
-  }
-
   .scene {
     height: 170vh;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .panel,
-  .panel-backdrop {
+  .dive-back,
+  .dive-pin,
+  .dive-card,
+  .dive-body,
+  .dive-diagram,
+  .loops-svg {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+
+  .loop-node,
+  .kernel-needle {
+    animation: none;
+  }
+
+  .scene-sticky {
     transition-duration: 1ms;
+    transition-delay: 0ms;
   }
 }

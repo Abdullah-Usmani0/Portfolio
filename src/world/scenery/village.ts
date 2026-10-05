@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { sceneX } from '../journey.ts';
+import { registerAnchors } from '../anchors.ts';
 import { peopleMaterial, smoke } from '../gl/sprites.ts';
 import { riverTop, VALLEY_P } from './valley.ts';
 import { seeded, tone, type Frame } from './types.ts';
@@ -32,6 +33,7 @@ export function village(group: THREE.Group) {
   const windows: number[] = [];
   const chimneys: [number, number][] = [];
   const cx = onValley('npcs', 60);
+  registerAnchors('npcs', group, { village: { x: cx + 30, y: riverTop(cx) + 40, w: 820, h: 130 } });
   let x = cx - 360;
   while (x < cx + 420) {
     const w = 44 + rnd() * 30;

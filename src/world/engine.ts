@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { dollyOrigin, dollyScale, dollyShift } from './dolly.ts';
 import { shared } from './gl/flat.ts';
 import { createSky } from './gl/sky.ts';
 import { pointScale } from './gl/sprites.ts';
@@ -21,10 +22,33 @@ const VIEW_H = 1000;
 const LAST_X = 22000;
 /** On a phone the foreground sinks this far, so the set piece shows above it. */
 const NARROW_DROP = 70;
+/** In a dive the foreground sinks this far out of the way (it carries the page's text, not the dive's). */
+const DIVE_DROP = 900;
+
+/** A dive in progress: the camera dollies towards one point of one layer. */
+export interface DiveView {
+  /** The target layer's group, and the point in it, in its own units. */
+  group: THREE.Object3D;
+  x: number;
+  y: number;
+  /** How much the target layer has grown so far. */
+  zoom: number;
+  /** 0 → 1: how far the target has moved from where it was to `aim`. */
+  t: number;
+  /** Where on screen the target ends up, in world units from the centre. */
+  aimX: number;
+  aimY: number;
+  scene: string;
+  step: string;
+}
 
 export interface World {
   resize: (width: number, height: number) => void;
-  render: (shot: Shot, time: number, dt: number) => void;
+  render: (shot: Shot, time: number, dt: number, dive?: DiveView) => void;
+  /** Where a point of a layer is on screen right now, in CSS pixels; null if the layer is hidden. */
+  project: (group: THREE.Object3D, x: number, y: number) => { x: number; y: number } | null;
+  /** The view's size in world units, after the last resize. */
+  size: () => { viewW: number; viewH: number };
   dispose: () => void;
 }
 
@@ -86,10 +110,15 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
   let viewH = VIEW_H;
   /** 0 on landscape screens, 1 on a phone held upright. */
   let narrow = 0;
+  let cssW = 1;
+  let cssH = 1;
+  let basePointScale = 1;
 
   return {
     resize(width, height) {
       renderer.setSize(width, height, false);
+      cssW = Math.max(1, width);
+      cssH = Math.max(1, height);
       const aspect = width / Math.max(1, height);
       viewH = aspect >= 1.2 ? VIEW_H : VIEW_H * Math.sqrt(1.2 / aspect);
       viewW = viewH * aspect;
@@ -100,9 +129,10 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       camera.bottom = -viewH / 2;
       camera.updateProjectionMatrix();
       sky.uniforms.uAspect.value = aspect;
-      pointScale.value = (height / viewH) * renderer.getPixelRatio();
+      basePointScale = (height / viewH) * renderer.getPixelRatio();
+      pointScale.value = basePointScale;
     },
-    render(shot, time, dt) {
+    render(shot, time, dt, dive) {
       shared.uTime.value = time;
       // Portrait screens see more sky and ground; keep the horizon a little above centre.
       const camY = shot.y - (viewH - VIEW_H) * 0.18;
@@ -111,12 +141,51 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       const camX = shot.x + shot.pan * narrow;
       camera.position.x = camX;
       camera.position.y = camY;
-      const frame: Frame = { look: shot.look, time, dt, camX, camY, s: shot.s };
+      const diving = dive && dive.t > 0 ? dive : undefined;
+      const frame: Frame = {
+        look: shot.look,
+        time,
+        dt,
+        camX,
+        camY,
+        s: shot.s,
+        dive: diving ? { scene: diving.scene, step: diving.step, t: diving.t } : null,
+      };
+      // Where each layer sits on the journey, before any dive.
+      const origin = (l: Layer) => ({
+        x: camX - (l.fixed ? shot.x : camX) * l.p,
+        y: camY * (1 - l.py) - (l.fixed ? NARROW_DROP * narrow : 0),
+      });
+      const target = diving ? layers.find((l) => l.group === diving.group) : undefined;
+      // How far the camera has slid, in the target layer's units, to bring the target to its aim.
+      const shift =
+        target && diving
+          ? {
+              x: dollyShift(diving.x + origin(target).x - camX, diving.aimX, diving.t, diving.zoom),
+              y: dollyShift(diving.y + origin(target).y - camY, diving.aimY, diving.t, diving.zoom),
+            }
+          : null;
       for (const l of layers) {
-        l.group.position.x = camX - (l.fixed ? shot.x : camX) * l.p;
-        l.group.position.y = camY * (1 - l.py) - (l.fixed ? NARROW_DROP * narrow : 0);
+        const o = origin(l);
+        let s: number | null = 1;
+        if (target && shift && diving) {
+          s = dollyScale(l.p, target.p, diving.zoom);
+          if (s !== null) {
+            o.x = dollyOrigin(o.x, camX, l.p, target.p, shift.x, s);
+            o.y = dollyOrigin(o.y, camY, l.py, target.py, shift.y, s);
+          }
+        }
+        // A layer the camera has flown past is behind it.
+        l.group.visible = s !== null;
+        if (s === null) continue;
+        if (l.fixed && diving) o.y -= DIVE_DROP * diving.t;
+        l.group.scale.set(s, s, 1);
+        l.group.position.x = o.x;
+        l.group.position.y = o.y;
         l.update?.(frame);
       }
+      // Sprites (smoke, lanterns, fireflies) grow with the layer the camera is diving into.
+      pointScale.value = basePointScale * (target && diving ? diving.zoom : 1);
       const { look } = shot;
       sky.uniforms.uTop.value.set(look.skyTop);
       sky.uniforms.uHorizon.value.set(look.skyHorizon);
@@ -125,6 +194,14 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       sky.uniforms.uStars.value = look.stars;
       renderer.render(scene, camera);
     },
+    project(group, x, y) {
+      const l = layers.find((layer) => layer.group === group);
+      if (!l || !l.group.visible) return null;
+      const sx = l.group.position.x + x * l.group.scale.x - camera.position.x;
+      const sy = l.group.position.y + y * l.group.scale.y - camera.position.y;
+      return { x: cssW / 2 + sx * (cssW / viewW), y: cssH / 2 - sy * (cssH / viewH) };
+    },
+    size: () => ({ viewW, viewH }),
     dispose() {
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;

@@ -11,6 +11,8 @@ export interface Frame {
   camY: number;
   /** Scene position: 0 = first scene centred, 1 = the next, … */
   s: number;
+  /** The open dive, if any: which scene, which step, and how far the camera has flown in (0–1). */
+  dive: { scene: string; step: string; t: number } | null;
 }
 
 /**

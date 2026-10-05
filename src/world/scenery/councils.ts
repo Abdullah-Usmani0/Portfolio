@@ -1,7 +1,19 @@
 import * as THREE from 'three';
-import { mixHex } from '@/motion/color.ts';
+import { mixHex, smootherstep } from '@/motion/color.ts';
+import { ANCHOR_IDS } from '../anchorIds.ts';
+import { registerAnchors, type Anchor } from '../anchors.ts';
 import { shared } from '../gl/flat.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
+import {
+  academyInterior,
+  designInterior,
+  interiorKit,
+  lighthouseInterior,
+  researchInterior,
+  studioInterior,
+  workshopInterior,
+  type Interior,
+} from './interiors.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
 import { riverTop } from './valley.ts';
@@ -10,8 +22,12 @@ import { onValley } from './village.ts';
 /**
  * The council town: six buildings for the six councils of agents, each with its own shape,
  * and workers moving behind every lit window. Colours come from a small palette of slots
- * that the time of day re-tints each frame.
+ * that the time of day re-tints each frame. In a dive, a building's front wall falls away
+ * to show the room behind it and the people at work there.
  */
+
+/** The six councils, in the order they stand along the river. */
+const BUILDINGS = ['research', 'design', 'implementation', 'audit', 'training', 'media'] as const;
 
 const SLOTS = {
   wall: 0,
@@ -38,16 +54,43 @@ const ACCENTS: Record<number, string> = {
   [SLOTS.media]: '#8b6fb3',
 };
 
+interface Box {
+  x0: number;
+  y0: number;
+  x1: number;
+  y1: number;
+}
+
 class Painter {
   pos: number[] = [];
   slot: number[] = [];
-  tri(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, s: Slot) {
+  /** Per vertex: the building (index + 1) whose cutaway hides it, or 0. */
+  cut: number[] = [];
+  /** The building being painted (index + 1), and its frame for the camera. */
+  private building = 0;
+  boxes: Box[] = [];
+  /** Off while painting things the camera should not frame, like the radio mast. */
+  framing = true;
+  begin(k: number) {
+    this.building = k + 1;
+    this.boxes[k] = { x0: Infinity, y0: Infinity, x1: -Infinity, y1: -Infinity };
+  }
+  tri(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, s: Slot, opens = s === SLOTS.wall) {
     this.pos.push(ax, ay, 0, bx, by, 0, cx, cy, 0);
     this.slot.push(s, s, s);
+    const c = opens ? this.building : 0;
+    this.cut.push(c, c, c);
+    const box = this.building && this.framing ? this.boxes[this.building - 1] : undefined;
+    if (box) {
+      box.x0 = Math.min(box.x0, ax, bx, cx);
+      box.x1 = Math.max(box.x1, ax, bx, cx);
+      box.y0 = Math.min(box.y0, ay, by, cy);
+      box.y1 = Math.max(box.y1, ay, by, cy);
+    }
   }
-  rect(x0: number, y0: number, x1: number, y1: number, s: Slot) {
-    this.tri(x0, y0, x1, y0, x1, y1, s);
-    this.tri(x0, y0, x1, y1, x0, y1, s);
+  rect(x0: number, y0: number, x1: number, y1: number, s: Slot, opens = s === SLOTS.wall) {
+    this.tri(x0, y0, x1, y0, x1, y1, s, opens);
+    this.tri(x0, y0, x1, y1, x0, y1, s, opens);
   }
   /** A half-disc (dome) sitting on y. */
   dome(cx: number, y: number, r: number, s: Slot) {
@@ -58,14 +101,15 @@ class Painter {
       this.tri(cx, y, cx + Math.cos(a0) * r, y + Math.sin(a0) * r, cx + Math.cos(a1) * r, y + Math.sin(a1) * r, s);
     }
   }
-  quadPoints(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number, s: Slot) {
-    this.tri(ax, ay, bx, by, cx, cy, s);
-    this.tri(ax, ay, cx, cy, dx, dy, s);
+  quadPoints(ax: number, ay: number, bx: number, by: number, cx: number, cy: number, dx: number, dy: number, s: Slot, opens = s === SLOTS.wall) {
+    this.tri(ax, ay, bx, by, cx, cy, s, opens);
+    this.tri(ax, ay, cx, cy, dx, dy, s, opens);
   }
   mesh(material: THREE.ShaderMaterial) {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('aSlot', new THREE.Float32BufferAttribute(this.slot, 1));
+    g.setAttribute('aCut', new THREE.Float32BufferAttribute(this.cut, 1));
     return new THREE.Mesh(g, material);
   }
 }
@@ -74,6 +118,9 @@ class Windows {
   pos: number[] = [];
   uv: number[] = [];
   seed: number[] = [];
+  cut: number[] = [];
+  /** The building being glazed (index + 1). */
+  building = 0;
   add(x: number, y: number, w: number, h: number, seed: number) {
     const v = [
       [x, y, 0, 0],
@@ -87,6 +134,7 @@ class Windows {
       this.pos.push(px, py, 0);
       this.uv.push(u, t);
       this.seed.push(seed);
+      this.cut.push(this.building);
     }
   }
   grid(x0: number, x1: number, y0: number, y1: number, cols: number, rows: number, seed: number) {
@@ -100,28 +148,43 @@ class Windows {
   }
 }
 
-function paletteMaterial() {
+/** How open each building's cutaway is (0 = shut, 1 = the front wall gone), shared by walls and windows. */
+const cutUniform = () => ({ value: BUILDINGS.map(() => 0) });
+
+/** GLSL: how far this vertex's wall has fallen away. */
+const CUT = /* glsl */ `
+  attribute float aCut;
+  uniform float uCut[${BUILDINGS.length}];
+  float openness() { return aCut > 0.5 ? uCut[int(aCut - 0.5)] : 0.0; }`;
+
+function paletteMaterial(cut: { value: number[] }) {
   const colors = Array.from({ length: 12 }, () => new THREE.Color());
   const material = new THREE.ShaderMaterial({
-    uniforms: { uColors: { value: colors } },
+    uniforms: { uColors: { value: colors }, uCut: cut },
+    transparent: true,
     vertexShader: /* glsl */ `
       attribute float aSlot;
       uniform vec3 uColors[12];
+      ${CUT}
       varying vec3 vColor;
+      varying float vAlpha;
       void main() {
         vColor = uColors[int(aSlot + 0.5)];
+        vAlpha = 1.0 - 0.95 * openness();
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
       varying vec3 vColor;
-      void main() { gl_FragColor = vec4(vColor, 1.0); }`,
+      varying float vAlpha;
+      void main() { gl_FragColor = vec4(vColor, vAlpha); }`,
   });
   return { material, colors };
 }
 
 /** Lit windows with someone at work behind each: walking past, or bent over a glowing screen. */
-function windowMaterial() {
+function windowMaterial(cut: { value: number[] }) {
   const uniforms = {
+    uCut: cut,
     uDark: { value: new THREE.Color() },
     uLight: { value: new THREE.Color() },
     uScreen: { value: new THREE.Color('#8fe3ff') },
@@ -131,13 +194,17 @@ function windowMaterial() {
   };
   const material = new THREE.ShaderMaterial({
     uniforms,
+    transparent: true,
     vertexShader: /* glsl */ `
       attribute float aSeed;
+      ${CUT}
       varying vec2 vUv;
       varying float vSeed;
+      varying float vAlpha;
       void main() {
         vUv = uv;
         vSeed = aSeed;
+        vAlpha = 1.0 - openness();
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -149,6 +216,7 @@ function windowMaterial() {
       uniform float uTime;
       varying vec2 vUv;
       varying float vSeed;
+      varying float vAlpha;
       float box(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
       void main() {
         float r1 = fract(sin(vSeed * 12.9898) * 43758.5453);
@@ -178,7 +246,7 @@ function windowMaterial() {
         }
         room = mix(room, uDark * 0.55, smoothstep(0.02, -0.02, d) * on);
         float inside = step(0.07, p.x) * step(p.x, 0.93) * step(0.07, p.y) * step(p.y, 0.93);
-        gl_FragColor = vec4(mix(uFrame, room, inside), 1.0);
+        gl_FragColor = vec4(mix(uFrame, room, inside), vAlpha);
       }`,
   });
   return { material, uniforms };
@@ -190,21 +258,30 @@ export function councils(group: THREE.Group) {
   const cx = onValley('councils', 330);
   const at = (x: number) => riverTop(x) + 1;
 
+  const kit = interiorKit();
+  const interiors: Interior[] = [];
+
   // Research: an observatory under a verdigris dome.
   {
     const x = cx - 470;
     const y = at(x + 50);
+    body.begin(0);
+    win.building = 1;
     body.rect(x, y, x + 100, y + 74, SLOTS.wall);
     body.rect(x + 100, y, x + 112, y + 74, SLOTS.wallShade);
     body.rect(x - 4, y + 74, x + 116, y + 80, SLOTS.roof);
     body.dome(x + 56, y + 80, 46, SLOTS.research);
     body.quadPoints(x + 58, y + 84, x + 66, y + 84, x + 76, y + 118, x + 68, y + 120, SLOTS.dark);
     win.grid(x + 8, x + 96, y + 10, y + 66, 3, 2, 1);
+    interiors.push(researchInterior(kit, { x, y, w: 100, h: 74, dome: { cx: x + 56, cy: y + 80, r: 46 } }));
   }
   // Design: a terraced drafting tower.
   {
     const x = cx - 320;
     const y = at(x + 60);
+    body.begin(1);
+    win.building = 2;
+    const rooms: Box[] = [];
     const tiers = [
       [0, 120, 70],
       [16, 104, 56],
@@ -213,16 +290,20 @@ export function councils(group: THREE.Group) {
     let top = y;
     tiers.forEach(([inset, right, h], k) => {
       body.rect(x + inset, top, x + right, top + h, SLOTS.wall);
+      rooms.push({ x0: x + inset, x1: x + right, y0: top, y1: top + h });
       body.rect(x + inset - 4, top + h, x + right + 4, top + h + 6, SLOTS.design);
       win.grid(x + inset + 6, x + right - 6, top + 8, top + h - 6, Math.max(2, Math.round((right - inset) / 26)), k === 0 ? 2 : 1, 40 + k * 9);
       top += h + 6;
     });
     body.tri(x + 40, top, x + 80, top, x + 60, top + 26, SLOTS.design);
+    interiors.push(designInterior(kit, rooms));
   }
   // Implementation: a long workshop with a sawtooth roof.
   {
     const x = cx - 160;
     const y = at(x + 80);
+    body.begin(2);
+    win.building = 3;
     body.rect(x, y, x + 168, y + 66, SLOTS.wall);
     for (let k = 0; k < 6; k++) {
       const sx = x + k * 28;
@@ -230,6 +311,7 @@ export function councils(group: THREE.Group) {
       body.tri(sx + 22, y + 66, sx + 28, y + 66, sx + 28, y + 92, SLOTS.roof);
     }
     win.grid(x + 8, x + 160, y + 10, y + 58, 6, 2, 80);
+    interiors.push(workshopInterior(kit, { x, y, w: 168, h: 66 }));
   }
   // Audit: a lighthouse, the tallest thing in town, watching everything.
   const lanternY = (() => {
@@ -237,52 +319,76 @@ export function councils(group: THREE.Group) {
     const y = at(x + 27);
     const h = 200;
     const stripes = 5;
+    body.begin(3);
+    win.building = 4;
     for (let k = 0; k < stripes; k++) {
       const y0 = y + (h * k) / stripes;
       const y1 = y + (h * (k + 1)) / stripes;
       const i0 = 27 - (k / stripes) * 9;
       const i1 = 27 - ((k + 1) / stripes) * 9;
-      body.quadPoints(x + 27 - i0, y0, x + 27 + i0, y0, x + 27 + i1, y1, x + 27 - i1, y1, k % 2 ? SLOTS.audit : SLOTS.wall);
+      body.quadPoints(x + 27 - i0, y0, x + 27 + i0, y0, x + 27 + i1, y1, x + 27 - i1, y1, k % 2 ? SLOTS.audit : SLOTS.wall, true);
     }
     body.rect(x + 4, y + h, x + 50, y + h + 6, SLOTS.roof);
     body.rect(x + 12, y + h + 6, x + 42, y + h + 30, SLOTS.lamp);
     body.tri(x + 8, y + h + 30, x + 46, y + h + 30, x + 27, y + h + 50, SLOTS.audit);
     for (let k = 0; k < 4; k++) win.add(x + 21, y + 26 + k * 40, 12, 16, 120 + k);
+    interiors.push(lighthouseInterior(kit, { cx: x + 27, y, h, halfBottom: 27, halfTop: 18 }));
     return y + h + 18;
   })();
   // Training: an academy with a colonnade and a pediment.
   {
     const x = cx + 120;
     const y = at(x + 90);
+    body.begin(4);
+    win.building = 5;
     body.rect(x, y, x + 180, y + 72, SLOTS.wall);
     body.rect(x - 6, y + 72, x + 186, y + 80, SLOTS.training);
     body.tri(x - 6, y + 80, x + 186, y + 80, x + 90, y + 114, SLOTS.training);
     body.tri(x + 14, y + 84, x + 166, y + 84, x + 90, y + 106, SLOTS.wall);
     win.grid(x + 10, x + 170, y + 8, y + 64, 6, 2, 160);
+    interiors.push(academyInterior(kit, { x, y, w: 180, h: 72 }));
   }
   // Media: a studio with a radio mast.
   const mast = (() => {
     const x = cx + 330;
     const y = at(x + 55);
+    body.begin(5);
+    win.building = 6;
     body.rect(x, y, x + 110, y + 88, SLOTS.wall);
     body.rect(x - 4, y + 88, x + 114, y + 96, SLOTS.media);
+    body.framing = false;
     body.rect(x + 74, y + 96, x + 78, y + 230, SLOTS.roof);
     body.tri(x + 64, y + 96, x + 76, y + 200, x + 76, y + 96, SLOTS.roof);
     body.tri(x + 88, y + 96, x + 76, y + 200, x + 76, y + 96, SLOTS.roof);
+    body.framing = true;
     win.grid(x + 8, x + 102, y + 10, y + 80, 4, 3, 200);
+    interiors.push(studioInterior(kit, { x, y, w: 110, h: 88 }));
     return new THREE.Vector2(x + 76, y + 232);
   })();
 
-  const palette = paletteMaterial();
+  const cut = cutUniform();
+  const palette = paletteMaterial(cut);
   const bodyMesh = body.mesh(palette.material);
   bodyMesh.position.z = 0.45;
   group.add(bodyMesh);
+  for (const room of interiors) group.add(room.group);
 
-  const windows = windowMaterial();
+  // Where the camera can fly: each building, and the whole town.
+  const anchor = (b: Box): Anchor => ({ x: (b.x0 + b.x1) / 2, y: (b.y0 + b.y1) / 2, w: b.x1 - b.x0, h: b.y1 - b.y0 });
+  const town = body.boxes.reduce((a, b) => ({ x0: Math.min(a.x0, b.x0), y0: Math.min(a.y0, b.y0), x1: Math.max(a.x1, b.x1), y1: Math.max(a.y1, b.y1) }));
+  const anchors: Record<(typeof ANCHOR_IDS.councils)[number], Anchor> = {
+    town: anchor(town),
+    ...(Object.fromEntries(BUILDINGS.map((id, k) => [id, anchor(body.boxes[k]!)])) as Record<(typeof BUILDINGS)[number], Anchor>),
+  };
+  registerAnchors('councils', group, anchors);
+  const opening = BUILDINGS.map(() => 0);
+
+  const windows = windowMaterial(cut);
   const wg = new THREE.BufferGeometry();
   wg.setAttribute('position', new THREE.Float32BufferAttribute(win.pos, 3));
   wg.setAttribute('uv', new THREE.Float32BufferAttribute(win.uv, 2));
   wg.setAttribute('aSeed', new THREE.Float32BufferAttribute(win.seed, 1));
+  wg.setAttribute('aCut', new THREE.Float32BufferAttribute(win.cut, 1));
   const winMesh = new THREE.Mesh(wg, windows.material);
   winMesh.position.z = 0.46;
   group.add(winMesh);
@@ -345,6 +451,23 @@ export function councils(group: THREE.Group) {
     beamMat.color.set(mixHex('#000000', '#ffe9b8', 0.32 * Math.max(0.15, look.windows)));
     blinkMat.color.set('#ff5a4a');
     blinkMat.opacity = 0.35 + 0.65 * (Math.sin(f.time * 3.2) > 0.6 ? 1 : 0);
+
+    // A dive into one building opens its front wall; every other wall closes.
+    const open = f.dive?.scene === 'councils' ? BUILDINGS.indexOf(f.dive.step as (typeof BUILDINGS)[number]) : -1;
+    const ease = 1 - Math.exp(-4 * f.dt);
+    let anyOpen = false;
+    opening.forEach((v, k) => {
+      const want = k === open ? (f.dive?.t ?? 0) : 0;
+      opening[k] = v + (want - v) * ease;
+      cut.value[k] = smootherstep(opening[k]! * 1.04);
+      const room = interiors[k]!;
+      room.group.visible = opening[k]! > 0.003;
+      if (room.group.visible) {
+        anyOpen = true;
+        room.update(f);
+      }
+    });
+    if (anyOpen) kit.update(look);
 
     people.uniforms.uShade.value.set(tone(look, 0.1));
     walkers.forEach((w, i) => {
