@@ -40,15 +40,21 @@ describe('the valley’s sound', () => {
     expect(peak('lake')).toBe(index('voice'));
   });
 
-  it('saves the music for the summit, rising over the last of the climb', () => {
-    for (let i = 0; i <= index('ascent') * 20; i++) {
-      for (const dark of [false, true]) expect(mixAt({ ...calm, s: i / 20, dark }).levels.music, `at ${i / 20}`).toBe(0);
+  it('lets the piano play the whole way', () => {
+    for (let s = 0; s <= SCENES.length - 1; s += 0.05) {
+      for (const dark of [false, true]) expect(mixAt({ ...calm, s, dark }).levels.music, `at ${s.toFixed(2)}`).toBeGreaterThan(0);
     }
-    expect(peak('music')).toBe(index('summit'));
-    expect(mixAt({ ...calm, s: index('summit') }).levels.music).toBe(1);
-    const midClimb = mixAt({ ...calm, s: index('ascent') + 0.5 }).levels.music;
-    expect(midClimb).toBeGreaterThan(0);
-    expect(midClimb).toBeLessThan(1);
+  });
+
+  it('softens the piano after dusk and brightens it again at sunrise', () => {
+    expect(mixAt({ ...calm, s: index('councils') }).night).toBe(0);
+    expect(mixAt({ ...calm, s: index('npcs') }).night).toBe(0);
+    expect(mixAt({ ...calm, s: index('mind') }).night).toBe(1);
+    expect(mixAt({ ...calm, s: index('ascent') }).night).toBe(1);
+    expect(mixAt({ ...calm, s: index('summit') }).night).toBe(0);
+    const evening = mixAt({ ...calm, s: index('npcs') + 0.5 }).night;
+    expect(evening).toBeGreaterThan(0);
+    expect(evening).toBeLessThan(1);
   });
 
   it('lets birds sing only by day, and crickets and the owl only at night', () => {

@@ -18,7 +18,7 @@ const VOICE: Readonly<Record<Layer, number>> = {
   owl: 0.22,
   bell: 0.18,
   pad: 0.11,
-  music: 0.085,
+  music: 0.17,
 };
 
 /** How much of each layer reaches the shared reverb: the valley's air. */
@@ -108,8 +108,8 @@ function air(ctx: Ctx, rand: Rand): ConvolverNode {
 }
 
 export interface Soundscape {
-  /** Move every layer toward its level; `dark` also closes the pad, for night. */
-  setMix(mix: { master: number; levels: Levels; dark: boolean }, at?: number, ease?: number): void;
+  /** Move every layer toward its level; `dark` also closes the pad, and `night` (0..1) softens the piano. */
+  setMix(mix: { master: number; levels: Levels; dark: boolean; night: number }, at?: number, ease?: number): void;
   /** Schedule the valley's voices (birds, crickets, bubbles, creaks, waves, owl, bell, piano) between two times. */
   schedule(from: number, to: number): void;
 }
@@ -151,6 +151,7 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
     }),
   ) as Record<Layer, GainNode>;
   let levels: Levels = Object.fromEntries(LAYERS.map((k) => [k, 0])) as Record<Layer, number>;
+  let night = 0;
 
   const loop = (buf: AudioBuffer, offset: number) => {
     const src = ctx.createBufferSource();
@@ -423,7 +424,7 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
     }
   };
 
-  /** A felt piano note: two strings a hair apart, overtones that fade first, the felt softening the tone as it rings. */
+  /** A felt piano note: two strings a hair apart, overtones that fade first, the felt softening the tone as it rings, and more so at night. */
   const OVERTONES = [
     [2.003, 0.32, 0.55],
     [3.009, 0.12, 0.32],
@@ -432,8 +433,8 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
   const piano = (at: number, hz: number, velocity: number, pan: number) => {
     // Low notes ring longer than high ones, as on a real piano.
     const ring = 6 * Math.min(1.5, Math.max(0.7, Math.sqrt(440 / hz)));
-    const felt = filter('lowpass', 700 + 1900 * velocity, 0.5);
-    felt.frequency.setTargetAtTime(520, at + 0.05, ring * 0.3);
+    const felt = filter('lowpass', (700 + 1900 * velocity) * (1 - 0.35 * night), 0.5);
+    felt.frequency.setTargetAtTime(520 - 120 * night, at + 0.05, ring * 0.3);
     felt.connect(panner(pan)).connect(layer.music);
     const string = (ratio: number, cents: number, amp: number, decay: number) => {
       const osc = ctx.createOscillator();
@@ -483,8 +484,9 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
   ];
 
   return {
-    setMix({ master: m, levels: next, dark }, at = ctx.currentTime, ease = 0.8) {
+    setMix({ master: m, levels: next, dark, night: n }, at = ctx.currentTime, ease = 0.8) {
       levels = next;
+      night = Number.isFinite(n) ? Math.min(1, Math.max(0, n)) : 0;
       master.gain.setTargetAtTime(m, at, ease);
       for (const k of LAYERS) layer[k].gain.setTargetAtTime(next[k] * VOICE[k], at, ease);
       padTone.frequency.setTargetAtTime(dark ? 420 : 680, at, 3);

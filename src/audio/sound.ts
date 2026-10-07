@@ -53,8 +53,8 @@ function moment() {
 function mix(ease?: number, silent = false) {
   if (!ctx || !scape) return;
   const now = moment();
-  const { master, levels } = mixAt(now);
-  scape.setMix({ master: silent ? 0 : master, levels, dark: now.dark }, ctx.currentTime, ease);
+  const { master, levels, night } = mixAt(now);
+  scape.setMix({ master: silent ? 0 : master, levels, dark: now.dark, night }, ctx.currentTime, ease);
 }
 
 const settle = () => useSound.setState({ playing: ctx?.state === 'running' });
