@@ -30,6 +30,9 @@ node scripts/shoot.mjs --file dist-artifact/page.html --dive learners --size 390
 
 Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__site`.
 
+**Deploy.** Vercel builds `main` on every push with its Vite preset (`npm run build` → `dist`).
+`vercel.json` hands every path that is not a file to the app, so `/cv` opens the CV.
+
 ## How it is built
 
 - **One canvas, painted layers** (`src/world`). three.js with an orthographic camera; every
