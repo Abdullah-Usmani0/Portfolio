@@ -40,6 +40,17 @@ describe('the valley’s sound', () => {
     expect(peak('lake')).toBe(index('voice'));
   });
 
+  it('saves the music for the summit, rising over the last of the climb', () => {
+    for (let i = 0; i <= index('ascent') * 20; i++) {
+      for (const dark of [false, true]) expect(mixAt({ ...calm, s: i / 20, dark }).levels.music, `at ${i / 20}`).toBe(0);
+    }
+    expect(peak('music')).toBe(index('summit'));
+    expect(mixAt({ ...calm, s: index('summit') }).levels.music).toBe(1);
+    const midClimb = mixAt({ ...calm, s: index('ascent') + 0.5 }).levels.music;
+    expect(midClimb).toBeGreaterThan(0);
+    expect(midClimb).toBeLessThan(1);
+  });
+
   it('lets birds sing only by day, and crickets and the owl only at night', () => {
     for (let s = 0; s <= SCENES.length - 1; s += 0.25) {
       const day = mixAt({ ...calm, s, dark: false }).levels;

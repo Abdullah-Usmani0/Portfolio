@@ -21,9 +21,10 @@ each system in plain words and then step by step, with its animated boards, and 
 Back returns to the same scene and hour.
 
 The valley has a sound too: wind, the river, the gorge falls, the farm's windmill, birds by
-day and crickets, an owl and the village bell by night. It is on by default, starts with the
-visitor's first click or tap (browsers allow nothing sooner), and the speaker in the corner
-turns it off; the choice is remembered.
+day and crickets, an owl and the village bell by night, and at the summit, at sunrise, a few
+quiet notes of piano. It is on by default, starts with the visitor's first click or tap
+(browsers allow nothing sooner), and the speaker in the corner turns it off; the choice is
+remembered.
 
 ## Run it
 
@@ -60,8 +61,10 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
   phone number. A unit test enforces both.
 - **Sound, synthesized** (`src/audio`). No audio files: the Web Audio API shapes noise into
   wind and water and schedules small synthesized voices (bubbles, creaks, chirps, hoots, a
-  bell). A pure `mixAt` (`mix.ts`, unit-tested) says how loud each layer is at every point of
-  the journey; `soundscape.ts` builds the graph, live or offline for listening tests.
+  bell, and at the summit a felt piano on loops of different lengths, after Eno's *Music for
+  Airports*, so the tune never repeats). A pure `mixAt` (`mix.ts`, unit-tested) says how
+  loud each layer is at every point of the journey; `soundscape.ts` builds the graph, live
+  or offline for listening tests.
 - **Real terrain.** K2's skyline is ray-marched from real elevation data
   (`blender/k2_panorama.py` → `src/world/data/k2.json`); the context-engineering bust is a
   CC0 MakeHuman mesh sampled into fireflies (`blender/bust_mesh.py`).

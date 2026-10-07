@@ -1,17 +1,18 @@
 import { SCENES } from '@/world/journey.ts';
 
 /** Every sound in the valley. Each is drawn in code by the soundscape; this file only says how loud. */
-export const LAYERS = ['wind', 'river', 'waterfall', 'windmill', 'birds', 'crickets', 'lake', 'owl', 'bell', 'pad'] as const;
+export const LAYERS = ['wind', 'river', 'waterfall', 'windmill', 'birds', 'crickets', 'lake', 'owl', 'bell', 'pad', 'music'] as const;
 export type Layer = (typeof LAYERS)[number];
 export type Levels = Readonly<Record<Layer, number>>;
 
-const silent: Levels = { wind: 0, river: 0, waterfall: 0, windmill: 0, birds: 0, crickets: 0, lake: 0, owl: 0, bell: 0, pad: 0 };
+const silent: Levels = { wind: 0, river: 0, waterfall: 0, windmill: 0, birds: 0, crickets: 0, lake: 0, owl: 0, bell: 0, pad: 0, music: 0 };
 const at = (levels: Partial<Levels>): Levels => ({ ...silent, ...levels });
 
 /**
  * What each scene sounds like, 0..1 per layer. The river runs along the valley floor, the
  * windmill turns on the farm, the gorge falls by the proving grounds, the bell hangs in the
  * village and the lake laps at the stage; birds sing by day and crickets take over at dusk.
+ * Music waits for the summit: a few piano notes at sunrise, rising over the last of the climb.
  */
 export const SCENE_SOUNDS: Readonly<Record<string, Levels>> = {
   top: at({ wind: 0.55, river: 0.2, waterfall: 0.35, birds: 0.45, pad: 0.6 }),
@@ -22,7 +23,7 @@ export const SCENE_SOUNDS: Readonly<Record<string, Levels>> = {
   mind: at({ wind: 0.2, river: 0.25, crickets: 0.8, lake: 0.2, owl: 0.5, bell: 0.1, pad: 0.7 }),
   voice: at({ wind: 0.2, river: 0.15, crickets: 0.65, lake: 0.85, owl: 0.45, pad: 0.6 }),
   ascent: at({ wind: 0.8, river: 0.05, waterfall: 0.15, crickets: 0.15, owl: 0.15, pad: 0.55 }),
-  summit: at({ wind: 0.7, birds: 0.2, pad: 0.75 }),
+  summit: at({ wind: 0.7, birds: 0.2, pad: 0.75, music: 1 }),
 };
 
 /** The loudest the whole valley ever plays: ambience, not a soundtrack. */

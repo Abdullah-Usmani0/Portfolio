@@ -1,7 +1,7 @@
 /**
  * The valley's sound, drawn in code like everything else: noise shaped into wind, water and a
- * turning windmill, and small synthesized voices for birds, crickets, an owl and the village
- * bell. No files. It runs on a live AudioContext, or on an OfflineAudioContext to render a
+ * turning windmill, small synthesized voices for birds, crickets, an owl and the village bell,
+ * and at the summit a felt piano. No files. It runs on a live AudioContext, or on an OfflineAudioContext to render a
  * sample to listen to.
  */
 import { LAYERS, type Layer, type Levels } from './mix.ts';
@@ -18,6 +18,7 @@ const VOICE: Readonly<Record<Layer, number>> = {
   owl: 0.22,
   bell: 0.18,
   pad: 0.11,
+  music: 0.085,
 };
 
 /** How much of each layer reaches the shared reverb: the valley's air. */
@@ -32,6 +33,7 @@ const WET: Readonly<Record<Layer, number>> = {
   owl: 0.55,
   bell: 0.6,
   pad: 0.2,
+  music: 0.45,
 };
 
 /** The windmill's sails turn at 0.6 rad/s (the farm scenery), four sails to a turn. */
@@ -108,7 +110,7 @@ function air(ctx: Ctx, rand: Rand): ConvolverNode {
 export interface Soundscape {
   /** Move every layer toward its level; `dark` also closes the pad, for night. */
   setMix(mix: { master: number; levels: Levels; dark: boolean }, at?: number, ease?: number): void;
-  /** Schedule the valley's voices (birds, crickets, bubbles, creaks, waves, owl, bell) between two times. */
+  /** Schedule the valley's voices (birds, crickets, bubbles, creaks, waves, owl, bell, piano) between two times. */
   schedule(from: number, to: number): void;
 }
 
@@ -421,6 +423,53 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
     }
   };
 
+  /** A felt piano note: two strings a hair apart, overtones that fade first, the felt softening the tone as it rings. */
+  const OVERTONES = [
+    [2.003, 0.32, 0.55],
+    [3.009, 0.12, 0.32],
+    [4.018, 0.05, 0.2],
+  ] as const;
+  const piano = (at: number, hz: number, velocity: number, pan: number) => {
+    // Low notes ring longer than high ones, as on a real piano.
+    const ring = 6 * Math.min(1.5, Math.max(0.7, Math.sqrt(440 / hz)));
+    const felt = filter('lowpass', 700 + 1900 * velocity, 0.5);
+    felt.frequency.setTargetAtTime(520, at + 0.05, ring * 0.3);
+    felt.connect(panner(pan)).connect(layer.music);
+    const string = (ratio: number, cents: number, amp: number, decay: number) => {
+      const osc = ctx.createOscillator();
+      osc.frequency.value = hz * ratio;
+      osc.detune.value = cents;
+      const env = ctx.createGain();
+      env.gain.setValueAtTime(0.0001, at);
+      env.gain.linearRampToValueAtTime(amp * velocity, at + 0.012);
+      env.gain.exponentialRampToValueAtTime(0.0001, at + decay);
+      osc.connect(env).connect(felt);
+      osc.start(at);
+      osc.stop(at + decay + 0.05);
+    };
+    string(1, -1.5, 0.5, ring);
+    string(1, 1.5, 0.5, ring);
+    for (const [ratio, amp, decay] of OVERTONES) string(ratio, 0, amp, ring * decay);
+  };
+
+  /**
+   * The summit's music, after Brian Eno's Music for Airports: a few loops, each one or two notes
+   * long and each its own length, so they drift past one another and the tune never repeats.
+   * Every note is from D major pentatonic, which sits on the pad's D, A and E.
+   */
+  const D3 = 146.83, D4 = 293.66, Fs4 = 369.99, A4 = 440, B4 = 493.88, D5 = 587.33, E5 = 659.25;
+  const LOOPS: readonly { every: number; first: number; pan: number; notes: readonly (readonly [delay: number, hz: number, velocity: number])[] }[] = [
+    { every: 31.3, first: 0.5, pan: -0.1, notes: [[0, D4, 0.55], [0.05, A4, 0.4]] },
+    { every: 19.7, first: 3.1, pan: 0.25, notes: [[0, Fs4, 0.5]] },
+    { every: 23.3, first: 6.7, pan: -0.3, notes: [[0, A4, 0.45], [0.9, D5, 0.4]] },
+    { every: 27.1, first: 11.3, pan: 0.35, notes: [[0, E5, 0.36]] },
+    { every: 35.9, first: 15.8, pan: -0.2, notes: [[0, B4, 0.42], [1.4, A4, 0.36]] },
+    { every: 41.3, first: 21.2, pan: 0.05, notes: [[0, D3, 0.5]] },
+  ];
+  const phrase = (loop: (typeof LOOPS)[number]) => (at: number) => {
+    for (const [delay, hz, velocity] of loop.notes) piano(at + delay + between(-0.03, 0.03), hz, velocity * between(0.85, 1.1), loop.pan);
+  };
+
   /** Each voice's next time, and how long to wait after it. */
   const voices: { layer: Layer; next: number; after: () => number; play: (at: number) => void }[] = [
     { layer: 'river', next: t0 + 0.2, after: () => wait(0.11), play: bubble },
@@ -430,6 +479,7 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
     { layer: 'lake', next: t0 + 0.5, after: () => between(3.2, 5.6), play: wave },
     { layer: 'owl', next: t0 + 4, after: () => between(16, 34), play: owl },
     { layer: 'bell', next: t0 + 6, after: () => between(38, 70), play: bell },
+    ...LOOPS.map((loop) => ({ layer: 'music' as const, next: t0 + loop.first, after: () => loop.every, play: phrase(loop) })),
   ];
 
   return {
@@ -441,7 +491,8 @@ export function createSoundscape(ctx: Ctx, rand: Rand = Math.random): Soundscape
     },
     schedule(from, to) {
       for (const v of voices) {
-        if (v.next < from) v.next = from + rand() * 0.2;
+        // Anything that fell behind (a stalled page) is skipped, not played late in a heap.
+        while (v.next < from) v.next += Math.max(0.03, v.after());
         while (v.next < to) {
           if (levels[v.layer] > AUDIBLE) v.play(v.next);
           v.next += Math.max(0.03, v.after());
