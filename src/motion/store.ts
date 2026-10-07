@@ -26,3 +26,9 @@ export const progress = { s: 0 };
 
 /** Raised from 0 to 1 by the intro, as the camera rises out of the valley at dawn. */
 export const intro = { rise: 0 };
+
+/**
+ * True while a reading page (the CV, How it works) covers the valley. The valley stays built
+ * underneath, so Back is instant, but it stops drawing and stops reading the scroll.
+ */
+export const valley = { hidden: false };

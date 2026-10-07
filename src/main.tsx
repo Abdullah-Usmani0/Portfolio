@@ -2,6 +2,7 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles/index.css';
 import { App } from './App.tsx';
+import { initSound, soundState } from './audio/sound.ts';
 import { scroller } from './motion/SmoothScroll.tsx';
 import { DIVES } from './content/dives.ts';
 import { closeDive, openDive, progress, useDive, useDay } from './motion/store.ts';
@@ -21,6 +22,8 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
       /** Open a scene's deep dive at a step, or close it. */
       dive: (scene: string | null, step = 0) => (scene ? openDive(scene, step) : closeDive()),
       diveState: () => useDive.getState(),
+      /** Whether sound is wanted, whether it plays, and the audio context's own state. */
+      sound: soundState(),
       /** Anchors a scene's dive flies to, labels or pins that the live world has not registered. */
       missingAnchors: (scene: string) => {
         const dive = DIVES[scene];
@@ -41,6 +44,9 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
     }),
   });
 }
+
+// The valley's sound waits for the visitor's first click, tap or key press.
+initSound();
 
 const root = document.getElementById('root');
 if (!root) throw new Error('Missing #root element');

@@ -16,13 +16,6 @@ export function Hero() {
       <p className="card-line" data-intro="fade">
         {hero.line}
       </p>
-      <p className="card-metrics tabular" data-intro="fade">
-        {hero.metrics.map((m) => (
-          <span key={m.label}>
-            <strong>{m.stat}</strong> {m.label}
-          </span>
-        ))}
-      </p>
     </Scene>
   );
 }

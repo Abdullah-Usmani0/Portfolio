@@ -15,11 +15,11 @@ function Card({ kicker, title, line }: { kicker: string; title: string; line: st
   );
 }
 
-/** Every scene card between the hero and the summit, and what its button says. */
-const CARDS: Readonly<Record<string, { kicker: string; title: string; line: string; details: string }>> = {
-  ...Object.fromEntries(chapters.map((c) => [c.id, { kicker: c.kicker, title: c.title, line: c.line, details: 'How it works' }])),
-  [mind.id]: { kicker: mind.kicker, title: mind.title, line: mind.line, details: 'Open the context window' },
-  [ascent.id]: { kicker: ascent.kicker, title: ascent.title, line: ascent.line, details: 'Climb camp by camp' },
+/** Every scene card between the hero and the summit, what its button says, and whether How it works explains it. */
+const CARDS: Readonly<Record<string, { kicker: string; title: string; line: string; details: string; read: boolean }>> = {
+  ...Object.fromEntries(chapters.map((c) => [c.id, { kicker: c.kicker, title: c.title, line: c.line, details: 'How it works', read: true }])),
+  [mind.id]: { kicker: mind.kicker, title: mind.title, line: mind.line, details: 'Open the context window', read: true },
+  [ascent.id]: { kicker: ascent.kicker, title: ascent.title, line: ascent.line, details: 'Climb camp by camp', read: false },
 };
 
 /** The work, scene by scene along the river, then the climb, in the journey's own order. */
@@ -29,7 +29,7 @@ export function Journey() {
       {SCENES.filter((s) => CARDS[s.id]).map((s) => {
         const card = CARDS[s.id]!;
         return (
-          <Scene key={s.id} id={s.id} details={card.details}>
+          <Scene key={s.id} id={s.id} details={card.details} read={card.read}>
             <Card kicker={card.kicker} title={card.title} line={card.line} />
           </Scene>
         );

@@ -1,5 +1,7 @@
 import { useEffect } from 'react';
-import { ascent, chapters, hero, index, mind, person, skills, zeroHighlights } from '@/content/site.ts';
+import { ascent, chapters, hero, index, metrics, mind, person, skills, zeroHighlights } from '@/content/site.ts';
+import { PageLink } from '@/ui/PageLink.tsx';
+import { PageBar } from './PageBar.tsx';
 
 /** The site's copy marks a few words with `*…*` for the serif italic; on paper they are plain. */
 const plain = (s: string) => s.replace(/\*/g, '');
@@ -17,15 +19,15 @@ export function Cv() {
   const work = [...ascent.camps].slice(1).reverse();
   const school = ascent.camps[0];
   return (
-    <div className="cv">
-      <div className="cv-bar">
-        <a href="#top" className="cv-back">
-          ← Back to the valley
-        </a>
+    <div className="page cv">
+      <PageBar>
+        <PageLink page="systems" className="page-link">
+          How it works
+        </PageLink>
         <button type="button" className="cv-print" onClick={() => window.print()}>
           Print or save as PDF
         </button>
-      </div>
+      </PageBar>
       <article className="cv-page">
         <header className="cv-head">
           <h1 className="cv-name">{person.name}</h1>
@@ -41,7 +43,7 @@ export function Cv() {
 
         <p className="cv-summary">{plain(hero.lead)}</p>
         <ul className="cv-metrics">
-          {hero.metrics.map((m) => (
+          {metrics.map((m) => (
             <li key={m.label}>
               <strong>{m.stat}</strong> {m.label}
             </li>

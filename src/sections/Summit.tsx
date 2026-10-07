@@ -1,5 +1,6 @@
 import { person, summit } from '@/content/site.ts';
 import { CopyEmail } from '@/ui/CopyEmail.tsx';
+import { PageLink } from '@/ui/PageLink.tsx';
 import { Rich } from '@/ui/Rich.tsx';
 import { Scene } from './Scene.tsx';
 
@@ -21,9 +22,12 @@ export function Summit() {
             <a className="link" href={person.github} target="_blank" rel="noreferrer">
               GitHub
             </a>
-            <a className="link" href="#cv">
+            <PageLink page="systems" className="link">
+              How it works
+            </PageLink>
+            <PageLink page="cv" className="link">
               CV
-            </a>
+            </PageLink>
           </p>
         </div>
       </Scene>

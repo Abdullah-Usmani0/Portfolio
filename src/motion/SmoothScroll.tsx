@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, type ReactNode } from 'react';
 import { ReactLenis, useLenis, type LenisRef } from 'lenis/react';
 import type Lenis from 'lenis';
 import { gsap } from 'gsap';
@@ -6,7 +6,8 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import { storyProgress } from '@/ui/storyProgress.ts';
 import { SCENES, shotAt } from '@/world/journey.ts';
 import { skyIsDark, WORLD_LOOKS } from '@/world/palette.ts';
-import { progress, useDay } from './store.ts';
+import { valleyScroll } from '@/lib/route.ts';
+import { progress, useDay, valley } from './store.ts';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -17,18 +18,40 @@ export const scroller: { lenis: Lenis | undefined } = { lenis: undefined };
  * Turns the scroll position into a scene position every frame — where the viewport centre
  * sits among the `[data-scene]` sections — for the world to draw and the nav to name.
  */
-function SceneDriver() {
+function SceneDriver({ hidden }: { hidden: boolean }) {
   const lenis = useLenis(ScrollTrigger.update);
 
   useEffect(() => {
     scroller.lenis = lenis;
   }, [lenis]);
 
+  // Behind a page the valley holds still. Back from one, it measures itself again and puts
+  // the visitor where they were: same scene, same hour, no intro.
+  const was = useRef(hidden);
+  useLayoutEffect(() => {
+    valley.hidden = hidden;
+    if (was.current === hidden) return;
+    was.current = hidden;
+    const lenis = scroller.lenis;
+    if (hidden) {
+      // An immediate scroll cancels any glide still running: it belongs to the valley, not
+      // to the page now on screen, which starts at its top.
+      lenis?.scrollTo(0, { immediate: true, force: true });
+      return;
+    }
+    lenis?.resize();
+    ScrollTrigger.refresh();
+    const y = valleyScroll();
+    if (lenis) lenis.scrollTo(y, { immediate: true, force: true });
+    else window.scrollTo(0, y);
+  }, [hidden]);
+
   useEffect(() => {
     const root = document.documentElement;
     let centers: number[] = [];
 
     const measure = () => {
+      if (valley.hidden) return;
       const sections = [...document.querySelectorAll<HTMLElement>('[data-scene]')];
       // The world reads scene i from SCENES[i]; the page must list its scenes in that order.
       if (import.meta.env.DEV && sections.map((el) => el.id).join() !== SCENES.map((sc) => sc.id).join()) {
@@ -45,7 +68,7 @@ function SceneDriver() {
     };
 
     const apply = () => {
-      if (centers.length === 0) return;
+      if (valley.hidden || centers.length === 0) return;
       const p = storyProgress(centers, window.scrollY + window.innerHeight / 2);
       progress.s = p * (centers.length - 1);
       const scene = Math.round(progress.s);
@@ -83,7 +106,7 @@ function SceneDriver() {
  * clock: it steps Lenis first, then ScrollTrigger, the scene position and the world.
  * Lenis turns smoothing off by itself for people who prefer reduced motion.
  */
-export function SmoothScroll({ children }: { children: ReactNode }) {
+export function SmoothScroll({ children, hidden = false }: { children: ReactNode; hidden?: boolean }) {
   const ref = useRef<LenisRef>(null);
 
   useEffect(() => {
@@ -99,7 +122,7 @@ export function SmoothScroll({ children }: { children: ReactNode }) {
       ref={ref}
       options={{ autoRaf: false, anchors: true, allowNestedScroll: true, stopInertiaOnNavigate: true, autoToggle: true }}
     >
-      <SceneDriver />
+      <SceneDriver hidden={hidden} />
       {children}
     </ReactLenis>
   );

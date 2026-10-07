@@ -25,28 +25,30 @@ export interface Chapter {
 export const person = {
   name: 'Muhammad Abdullah Usmani',
   role: 'Founding AI Engineer',
-  where: 'Zero · Dubai',
+  where: 'Dubai',
   email: 'abdullahusmani74@gmail.com',
   linkedin: 'https://www.linkedin.com/in/muhammadabdullahusmani/',
   github: 'https://github.com/Abdullah-Usmani0',
 } as const;
 
 export const hero = {
-  line: 'Founding AI Engineer. I build humanoid AI coworkers, self-improving agent systems and real-time voice AI.',
-  lead: 'I build *humanoid AI coworkers*, self-improving multi-agent systems and real-time voice AI.',
-  metrics: [
-    { stat: '1M+', label: 'learner interactions a day' },
-    { stat: '99.8%', label: 'uptime in production' },
-    { stat: '<200 ms', label: 'response latency' },
-    { stat: '+340%', label: 'student engagement' },
-  ],
+  line: 'Founding AI Engineer. I build agentic AI systems: self-improving multi-agent platforms and real-time voice AI.',
+  lead: 'I build *agentic AI systems*: self-improving multi-agent platforms and real-time voice AI.',
 } as const;
+
+/** The headline numbers. The printable CV shows them; the front page leads with the work instead. */
+export const metrics = [
+  { stat: '1M+', label: 'learner interactions a day' },
+  { stat: '99.8%', label: 'uptime in production' },
+  { stat: '<200 ms', label: 'response latency' },
+  { stat: '+340%', label: 'student engagement' },
+] as const;
 
 export const chapters: readonly Chapter[] = [
   {
     id: 'npcs',
-    line: 'Humanoid NPCs with a voice, a memory and a personality of their own.',
-    kicker: 'Humanoid NPCs',
+    line: 'AI coworkers with a voice, a memory and a personality of their own.',
+    kicker: 'AI coworkers',
     title: 'AI characters people actually *talk to*.',
     lead: 'Every character on Zero is a person, not a prompt. Each has about ninety traits, a voice of its own, a memory of you, and a context window rebuilt for every turn. A manager stays the same person across chat, planning, grading and nudges.',
     proofs: [
@@ -183,7 +185,7 @@ export const ascent = {
       org: 'Zero',
       role: 'Founding AI Engineer',
       dates: 'May 2025 – now',
-      note: 'Humanoid NPCs, a self-improving multi-agent curriculum system and real-time voice AI.',
+      note: 'Agentic AI systems: AI coworkers, a self-improving multi-agent curriculum platform and real-time voice AI.',
     },
   ],
 } as const;
@@ -239,3 +241,48 @@ export const summit = {
   vision:
     'I think the next interface is a colleague. AI people with their own voice, memory and judgement, who work beside us and get better every week from the work itself. That is what I am building toward, one scenario and one turn of context at a time.',
 } as const;
+
+/** The How it works page's own header. */
+export const howItWorks = {
+  kicker: 'How it works',
+  title: 'The systems behind the valley, *in plain words*.',
+  intro:
+    'Each scene in the valley is a system I built at Zero, a platform where people learn a job by doing its real work alongside AI coworkers. Here is what each one is, why it exists, and how it works, step by step.',
+} as const;
+
+/**
+ * How it works (`#systems`): each system said plainly, for a reader who has never heard of
+ * it. What it is, then why it exists. The page adds the dive's steps and boards after these.
+ */
+export const explained: Readonly<Record<string, { intro: string; what: string; why: string }>> = {
+  councils: {
+    intro: 'The AI team that builds the courses.',
+    what: 'Zero teaches a job by having people do its real work. The Curriculum Council is the team of AI agents that builds that work: 127 agents, each in charge of exactly one tool, grouped into six councils the way a company has departments. Research, design, implementation, audit, training and media. A job role goes in; a researched, designed, generated and audited course comes out.',
+    why: 'Built by hand, a course is slow to make and goes stale. The council builds it as a chain of recorded runs that anyone can inspect, and it learns from its own mistakes: when the same problem shows up across enough scenarios to be a real pattern, it rewrites the instructions that caused it. Anything it does on its own passes one safety layer, with limits, an undo and an off switch.',
+  },
+  scenarios: {
+    intro: 'How a job role becomes practice work.',
+    what: 'A role is broken into a focus map: the skills it needs and the projects that use them. Each project becomes a scenario set in a believable company, with objectives, stages, files, voice notes and a manager who briefs the learner, just like a first week at a new job.',
+    why: 'People learn a job by doing it, not by watching it. Every scenario comes with an example of what good looks like, is checked by reviewer agents before it ships, and is written so plainly that a smart ten-year-old could follow the instructions. Anything that was already made is reused before anything new is generated.',
+  },
+  learners: {
+    intro: 'Simulated students who try every scenario first.',
+    what: 'Before a real person meets a scenario, a cohort of AI learners plays it from start to finish through the real platform. Each has its own habits, from a nervous first-timer to a domain expert. They read each stage cold, ask the manager questions, hand in real files and are graded by the real evaluator.',
+    why: 'If something is confusing or broken, it should trip a simulated learner, not a real one. When most of a cohort stumbles on the same step, the content is at fault, not the learner, so a fix is drafted, previewed, applied, and proven by running the cohort again.',
+  },
+  npcs: {
+    intro: 'The AI managers and teammates learners work with.',
+    what: 'Each AI coworker is a whole person, not a prompt: about ninety traits, a voice, a face, and a memory of what you said last time. The same manager briefs you on a project, chats with you while you work, plans with you, reviews what you hand in and checks in when you go quiet.',
+    why: 'Learning a job is also learning to work with people. A colleague who stays the same person everywhere, and remembers you, keeps learners coming back, and feedback means more from someone you know than from a form.',
+  },
+  mind: {
+    intro: 'How each AI coworker decides what to think about.',
+    what: 'A language model only knows what is in front of it. So on every turn a coworker’s context is rebuilt from ten blocks in a fixed order: who they are, how the session runs, the task, what the work must meet, the files in play, the story so far, what was flagged, facts fetched just in time, what the learner understands, and last of all how they talk.',
+    why: 'More context is not better context. The right few facts in the right order make replies faster, cheaper and more accurate, and keeping the opening blocks identical lets the model reuse what it has already read instead of reading it again.',
+  },
+  voice: {
+    intro: 'Live spoken calls with an AI manager.',
+    what: 'Learners can talk to their manager out loud, on a video call. The manager listens, thinks and answers in a spoken voice, with a face whose lips move to the words, and can see the learner’s screen when they share it.',
+    why: 'A call only feels human if the answer comes quickly. Grading the learner and writing the reply in one stream, and speaking each sentence as soon as it is written, cut the wait for the first word from 5.4 to 2.1 seconds.',
+  },
+};

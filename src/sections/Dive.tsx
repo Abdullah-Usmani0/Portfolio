@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { DIVES, stepIndex, type Dive as DiveData, type Label } from '@/content/dives.ts';
+import { pageOf } from '@/lib/route.ts';
 import type { Side } from '@/content/dives/types.ts';
 import { scroller } from '@/motion/SmoothScroll.tsx';
 import { closeDive, openDive, useDive } from '@/motion/store.ts';
@@ -202,7 +203,7 @@ function Labels({ scene, labels: all, sheet }: { scene: string; labels: readonly
  * world does the showing; this is the words, the labels riding on the world, and the way
  * back. Escape, the back button or ← → keys; on a phone, swipe the sheet.
  */
-export function Dive() {
+export function Dive({ hidden = false }: { hidden?: boolean }) {
   const scene = useDive((s) => s.scene);
   const step = useDive((s) => s.step);
   const dive = scene ? DIVES[scene] : undefined;
@@ -246,7 +247,8 @@ export function Dive() {
       window.removeEventListener('keydown', onKey);
       delete html.dataset.dive;
       scroller.lenis?.start();
-      window.history.replaceState(window.history.state, '', url);
+      // Put the valley's address back, unless a page (the CV, How it works) now owns it.
+      if (pageOf(window.location) === 'valley') window.history.replaceState(window.history.state, '', url);
       returnTo?.focus({ preventScroll: true });
     };
   }, [dive]);
@@ -256,18 +258,31 @@ export function Dive() {
     if (dive && current) window.history.replaceState(window.history.state, '', `#${dive.scene}/${current.id}`);
   }, [dive, current]);
 
-  // Arriving on such an address opens that dive once the page has settled.
+  // A page covering the valley closes any dive that was open under it.
   useEffect(() => {
+    if (hidden) closeDive();
+  }, [hidden]);
+
+  // Arriving on such an address opens that dive once the page has settled: on first load
+  // after the intro, and straight away when How it works sends the visitor back to watch it.
+  const settled = useRef(false);
+  useEffect(() => {
+    if (hidden) return;
+    const first = !settled.current;
+    settled.current = true;
     const m = window.location.hash.match(/^#([\w-]+)\/([\w-]+)$/);
     const target = m ? DIVES[m[1]!] : undefined;
     if (!m || !target) return;
-    const timer = window.setTimeout(() => {
-      const el = document.getElementById(target.scene);
-      if (el) scroller.lenis?.scrollTo(el, { offset: (el.offsetHeight - window.innerHeight) / 2, immediate: true, force: true });
-      openDive(target.scene, stepIndex(target, m[2]!));
-    }, 1800);
+    const timer = window.setTimeout(
+      () => {
+        const el = document.getElementById(target.scene);
+        if (el) scroller.lenis?.scrollTo(el, { offset: (el.offsetHeight - window.innerHeight) / 2, immediate: true, force: true });
+        openDive(target.scene, stepIndex(target, m[2]!));
+      },
+      first ? 1800 : 120,
+    );
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [hidden]);
 
   const onPointerDown = (e: React.PointerEvent) => {
     if (e.pointerType === 'touch') swipe.current = { x: e.clientX, y: e.clientY };

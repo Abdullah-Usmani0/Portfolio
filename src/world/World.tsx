@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { gsap } from 'gsap';
 import { DIVES } from '@/content/dives.ts';
-import { intro, progress, useDive } from '@/motion/store.ts';
+import { intro, progress, useDive, valley } from '@/motion/store.ts';
 import { anchorOf } from './anchors.ts';
 import { diveStage, fitZoom } from './diveFraming.ts';
 import { createWorld, type World as WorldApi } from './engine.ts';
@@ -54,6 +54,8 @@ export default function World() {
       const now = performance.now();
       const dt = Math.min(0.05, (now - last) / 1000);
       last = now;
+      // Behind the CV or How it works: nothing to draw until the visitor comes back.
+      if (valley.hidden) return;
       const shot = shotAt(progress.s);
       // The opening crane: the camera rises out of the valley as the sun comes up.
       const rise = 1 - (1 - intro.rise) ** 3;

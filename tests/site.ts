@@ -5,6 +5,9 @@ export interface SiteHook {
   dive: (scene: string | null, step?: number) => void;
   jump: (id: string) => void;
   missingAnchors: (scene: string) => string[];
+  /** Where the journey is: 0 = the first scene centred, 1 = the next, … */
+  s: number;
+  sound: { on: boolean; playing: boolean; audio: string };
 }
 
 /** Every scene with a deep dive, in the order the journey meets them. */

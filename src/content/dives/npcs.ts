@@ -7,7 +7,7 @@ import type { Dive } from './types.ts';
 
 export const npcs: Dive = {
   scene: 'npcs',
-  kicker: 'Humanoid NPCs',
+  kicker: 'AI coworkers',
   pins: [
     { anchor: 'chat', label: 'Chat', step: 'everywhere' },
     { anchor: 'plan', label: 'Plan', step: 'everywhere' },

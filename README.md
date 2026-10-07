@@ -10,12 +10,20 @@ on the world and animated boards explain the detail.
 | The town | Curriculum Council | Six councils of tool-bound agents, the autonomy kernel, the loops that learn from every run |
 | The farm | Scenario generation | A role becomes a focus map, cards become scenarios, reviewers and the exemplar set the bar |
 | The proving grounds | Simulated learners | A cohort reads cold, asks the manager, hands in work, stumbles, and the fix is re-run |
-| The village | Humanoid NPCs | One manager on every surface, four voices, check-ins that respect you, faces and voices |
+| The village | AI coworkers | One manager on every surface, four voices, check-ins that respect you, faces and voices |
 | The fireflies | Context engineering | A character's mind assembled block by block: cache line, memory, retrieval, isolation |
 | The lake stage | Real-time voice | The race to the first word, the hidden verdict, speaking while thinking, the frame gate |
 | K2 | Career | Camp by camp up the Abruzzi route, from university to founding engineer |
 
-A printable CV lives at **`#cv`** (or `/cv` on a host with paths): the same words, on paper.
+Two reading pages lie over the valley: **How it works** (`#systems`, or `/systems`) explains
+each system in plain words and then step by step, with its animated boards, and a printable
+**CV** (`#cv`, or `/cv`) says the same on paper. The valley stays built underneath them, so
+Back returns to the same scene and hour.
+
+The valley has a sound too: wind, the river, the gorge falls, the farm's windmill, birds by
+day and crickets, an owl and the village bell by night. It is on by default, starts with the
+visitor's first click or tap (browsers allow nothing sooner), and the speaker in the corner
+turns it off; the choice is remembered.
 
 ## Run it
 
@@ -50,6 +58,10 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
 - **One source of words** (`src/content/site.ts`). The valley, the dives and the CV share
   it. The copy is conceptual by design: no internal names, hosts, IDs or costs, and no
   phone number. A unit test enforces both.
+- **Sound, synthesized** (`src/audio`). No audio files: the Web Audio API shapes noise into
+  wind and water and schedules small synthesized voices (bubbles, creaks, chirps, hoots, a
+  bell). A pure `mixAt` (`mix.ts`, unit-tested) says how loud each layer is at every point of
+  the journey; `soundscape.ts` builds the graph, live or offline for listening tests.
 - **Real terrain.** K2's skyline is ray-marched from real elevation data
   (`blender/k2_panorama.py` → `src/world/data/k2.json`); the context-engineering bust is a
   CC0 MakeHuman mesh sampled into fireflies (`blender/bust_mesh.py`).

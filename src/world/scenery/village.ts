@@ -184,7 +184,7 @@ const portrait = () =>
   });
 
 /**
- * The village of humanoid NPCs on the far bank. Each house is a place the same manager
+ * The village of AI coworkers on the far bank. Each house is a place the same manager
  * works: chat, plan mode, the review of submitted work, the kickoff hall and the post
  * office that sends check-ins. The studio gives characters their faces and voices, and in
  * the square four villagers talk, each in their own way. Windows light up at dusk.

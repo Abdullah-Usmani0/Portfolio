@@ -111,7 +111,7 @@ export const career: Dive = {
     {
       id: 'zero',
       title: 'Camp IV: Zero',
-      line: 'Founding AI engineer, since May 2025. Humanoid AI coworkers, self-improving agent systems and real-time voice.',
+      line: 'Founding AI engineer, since May 2025. Agentic AI systems: AI coworkers, self-improving multi-agent platforms and real-time voice.',
       focus: 'camp4',
       diagram: 'zero',
       frame: 'low',
