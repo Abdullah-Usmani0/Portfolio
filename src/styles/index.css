@@ -262,6 +262,7 @@ main,
 
 .nav-links a {
   color: inherit;
+  white-space: nowrap;
 }
 
 @media (max-width: 640px) {
@@ -1861,7 +1862,8 @@ body:has(.page) {
   }
 }
 
-@media (max-width: 640px) {
+/* Where the links and the hint would not fit side by side, the breathing button asks alone. */
+@media (max-width: 1360px) {
   .sound-hint {
     display: none;
   }
