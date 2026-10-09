@@ -1,17 +1,22 @@
 import * as THREE from 'three';
 import { dollyOrigin, dollyScale, dollyShift } from './dolly.ts';
 import { shared } from './gl/flat.ts';
+import { RAY_SCALE, sunRays } from './gl/rays.ts';
 import { createSky } from './gl/sky.ts';
 import { pointScale } from './gl/sprites.ts';
 import type { Shot } from './journey.ts';
+import { pointer } from './pointer.ts';
+import { leanTarget } from './tilt.ts';
 import { ascentFace } from './scenery/ascent.ts';
 import { birds, clouds, mist } from './scenery/atmosphere.ts';
 import { cloudSea } from './scenery/cloudSea.ts';
 import { foreground } from './scenery/foreground.ts';
-import { mountains } from './scenery/mountains.ts';
+import { K2_SUMMIT, mountains } from './scenery/mountains.ts';
 import { forestLayer } from './scenery/ridges.ts';
 import type { Frame, Layer } from './scenery/types.ts';
 import { valley } from './scenery/valley.ts';
+import { rayStrength } from './scenery/weather.ts';
+import { snow, spindrift } from './scenery/weatherFx.ts';
 import { councils } from './scenery/councils.ts';
 import { farm } from './scenery/farm.ts';
 import { lake } from './scenery/lake.ts';
@@ -26,6 +31,14 @@ const LAST_X = 22000;
 const NARROW_DROP = 70;
 /** In a dive the foreground sinks this far out of the way (it carries the page's text, not the dive's). */
 const DIVE_DROP = 900;
+/**
+ * The diorama: how far the nearest layer shifts, in world units, when the eye leans all the
+ * way across and up; the sky does not move at all, and every layer between moves by its depth.
+ */
+const TILT_X = 46;
+const TILT_Y = 24;
+/** Seconds the eye takes to settle where the cursor asks. */
+const LEAN = 0.55;
 
 /** A dive in progress: the camera dollies towards one point of one layer. */
 export interface DiveView {
@@ -44,6 +57,14 @@ export interface DiveView {
   step: string;
 }
 
+/** What the device can afford, and whether the visitor has asked for less motion. */
+export interface WorldEffects {
+  /** Flakes in the night climb's snowfall. */
+  snow: number;
+  /** True while the visitor prefers reduced motion: the snow stops and the spindrift holds still. */
+  still: () => boolean;
+}
+
 export interface World {
   resize: (width: number, height: number) => void;
   render: (shot: Shot, time: number, dt: number, dive?: DiveView) => void;
@@ -59,7 +80,7 @@ export interface World {
  * the page's hour. An orthographic camera slides along; each layer slides by its own
  * share of that, which is the whole of the parallax.
  */
-export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies: number): World {
+export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies: number, fx: WorldEffects): World {
   THREE.ColorManagement.enabled = false;
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
@@ -79,10 +100,22 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
   const updateProving = provingGrounds(valleyLayer.group);
   const updateLake = lake(valleyLayer.group);
 
-  // Far to near; each gets its own depth slot in z.
+  // Far to near; each gets its own depth slot in z. K2's summit trails a plume of spindrift.
+  const [k2, ...ranges] = mountains();
+  const updateSpindrift = spindrift(k2!.group, K2_SUMMIT, fx.still);
+  const shafts = sunRays();
+  const rayColor = new THREE.Color();
+  const rayWarm = new THREE.Color();
   const layers: Layer[] = [
     clouds(),
-    ...mountains(),
+    {
+      ...k2!,
+      update: (f) => {
+        k2!.update?.(f);
+        updateSpindrift(f);
+      },
+    },
+    ...ranges,
     mist({ p: 0.07, y0: -250, y1: -60, x0: -4000, x1: 6000, amount: 0.95 }),
     birds(),
     forestLayer({ seed: 31, x0: -3500, x1: LAST_X * 0.15 + 3500, baseY: -206, amp: 36, wave: 900, treeH: 26, treeW: 14, gap: 0.35, step: 2, p: 0.15, depth: 0.44, leaf: 0.35, sway: 0.6 }),
@@ -103,9 +136,9 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       peaks: [
         { x: 5150, h: 150, w: 170 },
         { x: 5330, h: 96, w: 130 },
-        { x: 6560, h: 168, w: 210 },
-        { x: 6760, h: 120, w: 150 },
-        { x: 7020, h: 74, w: 120 },
+        { x: 6560, h: 215, w: 220 },
+        { x: 6760, h: 150, w: 160 },
+        { x: 7020, h: 110, w: 130 },
       ],
     }),
     ascentFace(),
@@ -123,6 +156,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
     },
     mind(fireflies),
     foreground(),
+    snow(fx.snow, fx.still),
   ];
   layers.forEach((l, i) => {
     l.group.position.z = i * 2;
@@ -131,6 +165,9 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
 
   let viewW = VIEW_H;
   let viewH = VIEW_H;
+  // Where the eye leans (−1…1 each way), and the scene position last frame (for scroll speed).
+  const lean = { x: 0, y: 0 };
+  let lastS: number | null = null;
   /** 0 on landscape screens, 1 on a phone held upright. */
   let narrow = 0;
   let cssW = 1;
@@ -154,6 +191,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       sky.uniforms.uAspect.value = aspect;
       basePointScale = (height / viewH) * renderer.getPixelRatio();
       pointScale.value = basePointScale;
+      shafts.resize(width, height);
     },
     render(shot, time, dt, dive) {
       shared.uTime.value = time;
@@ -165,6 +203,21 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       camera.position.x = camX;
       camera.position.y = camY;
       const diving = dive && dive.t > 0 ? dive : undefined;
+      // The eye leans with the cursor; on a touch screen it drifts slowly by itself, and while
+      // the page scrolls it dips, so the layers part and close like a paper diorama.
+      const speed = lastS === null || dt <= 0 ? 0 : (shot.s - lastS) / dt;
+      lastS = shot.s;
+      if (fx.still()) {
+        lean.x = 0;
+        lean.y = 0;
+      } else {
+        const want = leanTarget(pointer, time, speed);
+        const k = 1 - Math.exp(-dt / LEAN);
+        lean.x += (want.x - lean.x) * k;
+        lean.y += (want.y - lean.y) * k;
+      }
+      const away = 1 - (diving?.t ?? 0);
+      const tilt = { x: lean.x * TILT_X * away, y: lean.y * TILT_Y * away };
       const frame: Frame = {
         look: shot.look,
         time,
@@ -175,6 +228,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         viewW,
         viewH,
         dive: diving ? { scene: diving.scene, step: diving.step, t: diving.t } : null,
+        tilt,
       };
       // Where each layer sits on the journey, before any dive.
       const climb = Math.max(0, shot.y);
@@ -209,8 +263,8 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         // above the card) slides a near layer up faster than the target.
         if (l.fixed && diving) o.y -= DIVE_DROP * diving.t + (target && shift ? Math.max(0, -shift.y) * s * (l.p / target.p) : 0);
         l.group.scale.set(s, s, 1);
-        l.group.position.x = o.x;
-        l.group.position.y = o.y;
+        l.group.position.x = o.x - tilt.x * l.p;
+        l.group.position.y = o.y - tilt.y * l.p;
         l.update?.(frame);
       }
       // Sprites (smoke, lanterns, fireflies) grow with the layer the camera is diving into.
@@ -223,7 +277,21 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       const tip = diving && look.stars > 0.5 ? diving.t : 0;
       sky.uniforms.uSunPos.value.set(look.sunX, 0.3 + look.sunY * 0.62 + tip * 0.55);
       sky.uniforms.uStars.value = look.stars;
+      // Light shafts at the ends of the day, streaming past whatever stands in front of the sun.
+      const rays = rayStrength(look);
+      if (rays > 0.01) {
+        const points = pointScale.value;
+        pointScale.value = (points * RAY_SCALE) / renderer.getPixelRatio();
+        const sun = { x: look.sunX * 0.5 + 0.5, y: 0.3 + look.sunY * 0.62 + tip * 0.55 };
+        shafts.prepare(renderer, scene, camera, sky.mesh, sun, fx.still() ? 0 : time);
+        pointScale.value = points;
+      }
       renderer.render(scene, camera);
+      if (rays > 0.01) {
+        // A low sun's light has crossed a lot of air: it takes the horizon's warmth.
+        rayColor.set(look.sun).lerp(rayWarm.set(look.skyHorizon), 0.35);
+        shafts.composite(renderer, rayColor, rays);
+      }
     },
     project(group, x, y) {
       const l = layers.find((layer) => layer.group === group);
@@ -240,6 +308,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         const m = mesh.material as THREE.Material | THREE.Material[] | undefined;
         (Array.isArray(m) ? m : m ? [m] : []).forEach((mm) => mm.dispose());
       });
+      shafts.dispose();
       renderer.dispose();
     },
   };

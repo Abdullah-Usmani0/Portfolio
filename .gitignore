@@ -13,3 +13,4 @@ blender/.cache/
 blender/out/
 *.blend1
 dist-artifact/
+__pycache__/

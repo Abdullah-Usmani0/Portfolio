@@ -93,7 +93,7 @@ export const WORLD_LOOKS: Readonly<Record<WorldLookName, WorldLook>> = {
   },
   sunrise: {
     label: 'Sunrise', clock: '05:52',
-    skyTop: '#4b5891', skyHorizon: '#ffb689', sun: '#ffe1b2', sunY: 0.02, sunX: 0.46,
+    skyTop: '#4b5891', skyHorizon: '#ffb689', sun: '#ffe1b2', sunY: -0.03, sunX: 0.46,
     haze: '#e6a79c', shade: '#291f37', snow: '#ffe8d8', water: '#c89aa7', leaf: '#4b4d52',
     windows: 0.3, stars: 0.05, mist: 0.85,
   },

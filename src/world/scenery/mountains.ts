@@ -23,6 +23,16 @@ const CONTINUE = 3200;
 const DEPTH = [1, 0.86, 0.74, 0.63, 0.53];
 const SNOW = [0.92, 0.55, 0.3, 0.14, 0.06];
 
+/** K2's summit on its own (farthest) layer, in that layer's units. */
+export const K2_SUMMIT = (() => {
+  const band = k2.layers[0]!;
+  let top = 0;
+  band.deg.forEach((d, i) => {
+    if (d > band.deg[top]!) top = i;
+  });
+  return { x: (band.x[top]! - 0.5) * k2.arc_deg * DEG_X, y: HORIZON_Y + band.deg[top]! * DEG_Y };
+})();
+
 /** The real K2 range as five painted layers, far first (from blender/k2_panorama.py). */
 export function mountains(): Layer[] {
   return k2.layers.map((band, i) => {

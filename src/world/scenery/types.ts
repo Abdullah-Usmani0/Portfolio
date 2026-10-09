@@ -16,6 +16,11 @@ export interface Frame {
   viewH: number;
   /** The open dive, if any: which scene, which step, and how far the camera has flown in (0–1). */
   dive: { scene: string; step: string; t: number } | null;
+  /**
+   * How far the eye leans into the diorama, in world units at the nearest depth: every
+   * layer shifts against it by its own parallax (see engine.ts).
+   */
+  tilt: { x: number; y: number };
 }
 
 /**

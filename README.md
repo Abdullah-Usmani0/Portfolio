@@ -69,6 +69,15 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
 - **Real terrain.** K2's skyline is ray-marched from real elevation data
   (`blender/k2_panorama.py` → `src/world/data/k2.json`); the context-engineering bust is a
   CC0 MakeHuman mesh sampled into fireflies (`blender/bust_mesh.py`).
+- **Light and weather** (`gl/rays.ts`, `scenery/weatherFx.ts`). Light shafts take their
+  shape from whatever really stands in front of the sun: the scene is drawn small as
+  coverage, and each pixel gathers the open sky between itself and the sun, so the rays
+  stream past real ridges and peaks. A plume of spindrift streams off K2's summit, and snow
+  falls on the night climb. `weather.ts` says how strong each is at every hour (unit-tested).
+- **A diorama you can look into** (`tilt.ts`). The eye leans with the cursor, drifts slowly
+  on a touch screen and dips while the page scrolls; every layer shifts against it by its
+  own depth, so the painted valley opens up like a paper diorama. With reduced motion the
+  tilt, the snow and the plume all hold still.
 
 ## Credits
 
