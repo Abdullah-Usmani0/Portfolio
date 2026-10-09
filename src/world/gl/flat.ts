@@ -37,6 +37,36 @@ export function silhouette(xs: ArrayLike<number>, ys: ArrayLike<number>, bottom:
   return g;
 }
 
+/** A silhouette's points split at two x positions: before `a`, between, and after `b`. */
+export function splitLine(xs: number[], ys: number[], a: number, b: number) {
+  const at = (x: number) => {
+    let k = 0;
+    while (k < xs.length - 2 && xs[k + 1]! < x) k++;
+    const t = Math.min(1, Math.max(0, (x - xs[k]!) / (xs[k + 1]! - xs[k]! || 1)));
+    return ys[k]! + (ys[k + 1]! - ys[k]!) * t;
+  };
+  const part = (lo: number, hi: number) => {
+    const px: number[] = [];
+    const py: number[] = [];
+    if (lo > xs[0]!) {
+      px.push(lo);
+      py.push(at(lo));
+    }
+    xs.forEach((x, k) => {
+      if (x > lo && x < hi) {
+        px.push(x);
+        py.push(ys[k]!);
+      }
+    });
+    if (hi < xs.at(-1)!) {
+      px.push(hi);
+      py.push(at(hi));
+    }
+    return { xs: px, ys: py };
+  };
+  return [part(-Infinity, a), part(a, b), part(b, Infinity)] as const;
+}
+
 export interface FlatUniforms {
   [key: string]: THREE.IUniform;
   uTop: { value: THREE.Color };
@@ -49,11 +79,24 @@ export interface FlatUniforms {
 }
 
 /**
+ * Where a painted layer is covered by rendered tiles (see scenery/renderedStrip.ts): the
+ * tiles stand side by side `width` apart from `x0`, and above `ys[k]` tile k covers it
+ * (a huge value while that tile is not in), measured from each vertex's `aClip` (0 if the
+ * geometry has none), so the covered part can follow a line rather than a level.
+ */
+export interface Clip {
+  x0: number;
+  width: number;
+  ys: Float32Array;
+}
+
+/**
  * Vertical gradient from `uBottom` (at y ≤ uY0) to `uTop` (at y ≥ uY1), with optional sway.
  * With `lift`, y is measured from each vertex's `aLift` instead of from zero, so ground that
- * climbs keeps its gradient under its own edge.
+ * climbs keeps its gradient under its own edge. With `clip`, nothing is drawn where rendered
+ * tiles cover the layer.
  */
-export function flatMaterial(opts: { y0: number; y1: number; sway?: number; transparent?: boolean; lift?: boolean }): THREE.ShaderMaterial & {
+export function flatMaterial(opts: { y0: number; y1: number; sway?: number; transparent?: boolean; lift?: boolean; clip?: Clip }): THREE.ShaderMaterial & {
   uniforms: FlatUniforms;
 } {
   const uniforms: FlatUniforms = {
@@ -65,17 +108,28 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
     uOpacity: { value: 1 },
     uTime: shared.uTime,
   };
+  const defines: Record<string, string> = {};
+  if (opts.lift) defines.LIFT = '';
+  if (opts.clip) {
+    defines.CLIP = String(opts.clip.ys.length);
+    uniforms.uClipX0 = { value: opts.clip.x0 };
+    uniforms.uClipW = { value: opts.clip.width };
+    uniforms.uClipY = { value: opts.clip.ys };
+  }
   return new THREE.ShaderMaterial({
     uniforms,
     transparent: opts.transparent ?? false,
     depthWrite: !opts.transparent,
-    defines: opts.lift ? { LIFT: '' } : {},
+    defines,
     vertexShader: /* glsl */ `
       attribute float aSway;
       attribute float aLift;
+      attribute float aClip;
       uniform float uTime;
       uniform float uSway;
       varying float vY;
+      varying vec2 vPos;
+      varying float vClip;
       void main() {
         vec3 p = position;
         float gust = sin(uTime * 0.9 + position.x * 0.004) * 0.6 + 0.4;
@@ -85,6 +139,8 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
         #else
         vY = position.y;
         #endif
+        vPos = position.xy;
+        vClip = aClip;
         gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -94,7 +150,18 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
       uniform float uY1;
       uniform float uOpacity;
       varying float vY;
+      varying vec2 vPos;
+      varying float vClip;
+      #ifdef CLIP
+      uniform float uClipX0;
+      uniform float uClipW;
+      uniform float uClipY[CLIP];
+      #endif
       void main() {
+        #ifdef CLIP
+        int tile = int(floor((vPos.x - uClipX0) / uClipW));
+        if (tile >= 0 && tile < CLIP && vPos.y > uClipY[tile] + vClip) discard;
+        #endif
         float k = smoothstep(uY0, uY1, vY);
         gl_FragColor = vec4(mix(uBottom, uTop, k), uOpacity);
       }`,

@@ -66,9 +66,28 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
   is at every point of the journey; the piano's level in each scene is measured so it sits
   under that scene's own sounds. `soundscape.ts` builds the graph, live or offline for
   listening tests.
-- **Real terrain.** K2's skyline is ray-marched from real elevation data
-  (`blender/k2_panorama.py` → `src/world/data/k2.json`); the context-engineering bust is a
-  CC0 MakeHuman mesh sampled into fireflies (`blender/bust_mesh.py`).
+- **Real terrain, rendered** (`blender/k2_render.py`, `gl/rendered.ts`). K2's skyline is
+  ray-marched from real elevation data (`blender/k2_panorama.py` → `data/k2.json`), and each
+  of the five mountain layers is rendered in Cycles from the same eye. The data's 31 m cells
+  are carved with detail they cannot hold (`blender/terrain_detail.py`): gullies traced down
+  the real fall line, crags, rock in layers, true displacement on the steepest walls; snow
+  lies where the ground holds it, glaciers carry moraine stripes, and rock shows below the
+  snow line. Each layer is lit three ways in one render (light groups): from the left, from
+  the right and by the open sky alone, and the site mixes the three for the hour
+  (`relight.ts`, unit-tested): the light follows the sun, warms on bare rock, lingers on the
+  peaks as the sun sets and fades into the air with real distance. Fog drifts in the valleys
+  at each layer's foot; the painted silhouettes show until the renders load. The
+  context-engineering bust is a CC0 MakeHuman mesh sampled into fireflies
+  (`blender/bust_mesh.py`).
+- **The foreground, rendered** (`blender/foreground_render.py`, `gl/strip.ts`,
+  `scenery/renderedStrip.ts`). The two forested ridges, the valley floor with the
+  waterfall's cliff, and the near bank that climbs to the summit are built in 3D from the
+  very shapes the site paints (`npm run scenery` exports them), so the words and set pieces
+  sit where they did: spruces grown whorl by whorl (`blender/pines.py`), hair grass, bushes
+  and split boulders, a granite cliff in stepped, stained bands, and up high the mountain's
+  own carved rock and snow. Each layer is rendered side-on in tiles and relit by the hour
+  like the mountains; tiles load as the camera nears them, their treetops sway, the nearest
+  ground goes soft under the words, and the painted layer shows until a tile is in.
 - **Light and weather** (`gl/rays.ts`, `scenery/weatherFx.ts`). Light shafts take their
   shape from whatever really stands in front of the sun: the scene is drawn small as
   coverage, and each pixel gathers the open sky between itself and the sun, so the rays

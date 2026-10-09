@@ -22,6 +22,9 @@ export interface Scene {
 
 const GAP = 2600;
 
+/** The far end of the world, in foreground units: every layer is laid out to here. */
+export const LAST_X = 22000;
+
 /** How high the camera has climbed at the last two scenes: camp level, then the summit. */
 export const CLIMB = { ascent: 700, summit: 1400 } as const;
 

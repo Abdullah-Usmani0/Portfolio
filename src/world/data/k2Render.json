@@ -1,0 +1,82 @@
+{
+ "pxPerDeg": 20,
+ "lightScale": 0.91562,
+ "pad": 8,
+ "bands": [
+  {
+   "near_km": 9.0,
+   "far_km": 40.0,
+   "lon": [
+    -58.0,
+    70.0
+   ],
+   "top_deg": 18.39,
+   "bottom_deg": -3.43,
+   "pxPerDeg": 30,
+   "size": [
+    3840,
+    655
+   ]
+  },
+  {
+   "near_km": 5.5,
+   "far_km": 9.0,
+   "lon": [
+    -58.0,
+    84.0
+   ],
+   "top_deg": 28.718,
+   "bottom_deg": -5.016,
+   "pxPerDeg": 20,
+   "size": [
+    2840,
+    675
+   ]
+  },
+  {
+   "near_km": 3.0,
+   "far_km": 5.5,
+   "lon": [
+    -58.0,
+    98.0
+   ],
+   "top_deg": 29.016,
+   "bottom_deg": -7.962,
+   "pxPerDeg": 20,
+   "size": [
+    3120,
+    740
+   ]
+  },
+  {
+   "near_km": 1.5,
+   "far_km": 3.0,
+   "lon": [
+    -58.0,
+    113.0
+   ],
+   "top_deg": 22.173,
+   "bottom_deg": -10.899,
+   "pxPerDeg": 20,
+   "size": [
+    3420,
+    662
+   ]
+  },
+  {
+   "near_km": 0.3,
+   "far_km": 1.5,
+   "lon": [
+    -58.0,
+    127.0
+   ],
+   "top_deg": 16.053,
+   "bottom_deg": -17.68,
+   "pxPerDeg": 20,
+   "size": [
+    3700,
+    675
+   ]
+  }
+ ]
+}

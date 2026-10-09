@@ -27,7 +27,7 @@ export default function World() {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
     try {
       const small = window.matchMedia('(max-width: 700px)').matches;
-      world = createWorld(el, small ? 1.5 : 2, small ? 14000 : 24000, { snow: small ? 500 : 1100, still: () => reduce.matches });
+      world = createWorld(el, small ? 1.5 : 2, small ? 14000 : 24000, { snow: small ? 500 : 1100, still: () => reduce.matches, halfTextures: small });
     } catch {
       document.documentElement.dataset.world = 'off';
       return;

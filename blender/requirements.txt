@@ -1,0 +1,9 @@
+# The Blender scripts run on Python 3.11 with Blender as a module:
+#   python3.11 -m venv ~/.venvs/blender && ~/.venvs/blender/bin/pip install -r blender/requirements.txt
+# k2_render.py also calls ImageMagick's `convert` (with WebP support) to write the textures;
+# foreground_render.py writes its own with Pillow.
+bpy==5.0.1
+numpy==1.26.4
+OpenEXR==3.5.2
+pillow==11.3.0
+scipy==1.14.1

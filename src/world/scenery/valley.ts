@@ -3,6 +3,7 @@ import { mixHex } from '@/motion/color.ts';
 import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
 import { bandGeometry, mistMaterial, riverMaterial, waterfallMaterial } from '../gl/water.ts';
 import { sceneX } from '../journey.ts';
+import { renderedStrip } from './renderedStrip.ts';
 import { forestLine } from './ridges.ts';
 import { tone, type Layer } from './types.ts';
 
@@ -12,9 +13,9 @@ export const VALLEY_P = 0.55;
 export const onValley = (sceneId: string, dx = 0) => sceneX(sceneId) * VALLEY_P + dx;
 /** The glacier waterfall: where the river is born, beside K2 on the first screen. */
 export const FALLS_X = 470;
-const X0 = -2600;
-const X1 = 15000;
-const STEP = 8;
+/** Where the valley floor starts and ends, and the step its ground line is drawn at. */
+export const VALLEY_SPAN = { x0: -2600, x1: 15000, step: 8 } as const;
+const { x0: X0, x1: X1, step: STEP } = VALLEY_SPAN;
 
 const groundNoise = fbm(11, 3);
 const riverNoise = fbm(23, 3);
@@ -37,8 +38,9 @@ export const riverBottom = (x: number) => {
 /**
  * The cliff wall the falls pour down: it rises from the valley floor, runs along the far
  * bank with pines on its rim and a notch where the water spills, then steps back down.
+ * Also its bare rim and the pines on it, for the renders.
  */
-function cliffLine() {
+export function cliffLine() {
   const x0 = FALLS_X - 190;
   const x1 = FALLS_X + 640;
   const line = forestLine({
@@ -60,7 +62,12 @@ function cliffLine() {
     },
     clear: (x) => Math.abs(x - (FALLS_X + 16)) < 50,
   });
-  return { xs: Array.from(line.xs), ys: Array.from(line.ys).map((y, i) => Math.max(y, groundY(line.xs[i]!))) };
+  return {
+    xs: Array.from(line.xs),
+    ys: Array.from(line.ys).map((y, i) => Math.max(y, groundY(line.xs[i]!))),
+    ground: Array.from(line.ground).map((y, i) => Math.max(y, groundY(line.xs[i]!))),
+    trees: line.trees,
+  };
 }
 
 /** Where the water leaves the rock. */
@@ -70,8 +77,11 @@ const lipY = () => {
   return (ys[Math.max(0, i)] ?? 0) - 4;
 };
 
-export function valley(): Layer {
+/** The valley floor, painted, with its render (see renderedStrip.ts) over it once loaded; `half` loads the half-size one (phones). */
+export function valley(half = false): Layer {
   const group = new THREE.Group();
+  // Over the painted ground and cliff, under the set pieces and the water.
+  const strip = renderedStrip('valley', group, { half, look: { haze: 0.08, sway: 0, shadeY0: 0, shadeY1: 1, shadeFloor: 1, deg: -4 }, z: 0.25 });
 
   // Ground.
   const gx: number[] = [];
@@ -80,12 +90,12 @@ export function valley(): Layer {
     gx.push(x);
     gy.push(groundY(x));
   }
-  const ground = flatMaterial({ y0: -460, y1: -258 });
+  const ground = flatMaterial({ y0: -460, y1: -258, clip: strip?.clip });
   group.add(new THREE.Mesh(silhouette(gx, gy, -1600), ground));
 
   // The rock the falls spill over.
   const c = cliffLine();
-  const cliff = flatMaterial({ y0: -280, y1: -50 });
+  const cliff = flatMaterial({ y0: -280, y1: -50, clip: strip?.clip });
   const cliffMesh = new THREE.Mesh(silhouette(c.xs, c.ys, -305), cliff);
   cliffMesh.position.z = 0.4;
   group.add(cliffMesh);
@@ -127,7 +137,9 @@ export function valley(): Layer {
     group,
     p: VALLEY_P,
     py: VALLEY_P,
-    update: ({ look }) => {
+    update: (f) => {
+      const { look } = f;
+      strip?.update(f);
       const base = tone(look, 0.24, 0.55);
       ground.uniforms.uTop.value.set(mixHex(base, look.haze, 0.12));
       ground.uniforms.uBottom.value.set(mixHex(base, look.shade, 0.35));
@@ -143,5 +155,6 @@ export function valley(): Layer {
       spray.uniforms.uColor.value.set(mixHex(look.snow, look.skyHorizon, 0.3));
       spray.uniforms.uAmount.value = 0.55;
     },
+    dispose: () => strip?.dispose(),
   };
 }

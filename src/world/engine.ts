@@ -4,7 +4,7 @@ import { shared } from './gl/flat.ts';
 import { RAY_SCALE, sunRays } from './gl/rays.ts';
 import { createSky } from './gl/sky.ts';
 import { pointScale } from './gl/sprites.ts';
-import type { Shot } from './journey.ts';
+import { LAST_X, type Shot } from './journey.ts';
 import { pointer } from './pointer.ts';
 import { leanTarget } from './tilt.ts';
 import { ascentFace } from './scenery/ascent.ts';
@@ -12,7 +12,7 @@ import { birds, clouds, mist } from './scenery/atmosphere.ts';
 import { cloudSea } from './scenery/cloudSea.ts';
 import { foreground } from './scenery/foreground.ts';
 import { K2_SUMMIT, mountains } from './scenery/mountains.ts';
-import { forestLayer } from './scenery/ridges.ts';
+import { forestLayer, RIDGES } from './scenery/ridges.ts';
 import type { Frame, Layer } from './scenery/types.ts';
 import { valley } from './scenery/valley.ts';
 import { rayStrength } from './scenery/weather.ts';
@@ -26,7 +26,6 @@ import { village } from './scenery/village.ts';
 
 /** The view is this many world units tall on a landscape screen; portrait screens see more. */
 const VIEW_H = 1000;
-const LAST_X = 22000;
 /** On a phone the foreground sinks this far, so the set piece shows above it. */
 const NARROW_DROP = 70;
 /** In a dive the foreground sinks this far out of the way (it carries the page's text, not the dive's). */
@@ -63,6 +62,8 @@ export interface WorldEffects {
   snow: number;
   /** True while the visitor prefers reduced motion: the snow stops and the spindrift holds still. */
   still: () => boolean;
+  /** Load the rendered layers' half-size textures (phones). */
+  halfTextures?: boolean;
 }
 
 export interface World {
@@ -93,7 +94,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
   const sky = createSky();
   scene.add(sky.mesh);
 
-  const valleyLayer = valley();
+  const valleyLayer = valley(fx.halfTextures);
   const updateVillage = village(valleyLayer.group);
   const updateCouncils = councils(valleyLayer.group);
   const updateFarm = farm(valleyLayer.group);
@@ -101,7 +102,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
   const updateLake = lake(valleyLayer.group);
 
   // Far to near; each gets its own depth slot in z. K2's summit trails a plume of spindrift.
-  const [k2, ...ranges] = mountains();
+  const [k2, ...ranges] = mountains(fx.halfTextures);
   const updateSpindrift = spindrift(k2!.group, K2_SUMMIT, fx.still);
   const shafts = sunRays();
   const rayColor = new THREE.Color();
@@ -118,9 +119,9 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
     ...ranges,
     mist({ p: 0.07, y0: -250, y1: -60, x0: -4000, x1: 6000, amount: 0.95 }),
     birds(),
-    forestLayer({ seed: 31, x0: -3500, x1: LAST_X * 0.15 + 3500, baseY: -206, amp: 36, wave: 900, treeH: 26, treeW: 14, gap: 0.35, step: 2, p: 0.15, depth: 0.44, leaf: 0.35, sway: 0.6 }),
+    forestLayer(RIDGES[0], { name: 'ridge0', half: !!fx.halfTextures }),
     mist({ p: 0.2, y0: -290, y1: -170, x0: -4000, x1: LAST_X * 0.2 + 4000, amount: 0.7 }),
-    forestLayer({ seed: 47, x0: -3500, x1: LAST_X * 0.28 + 3500, baseY: -240, amp: 30, wave: 700, treeH: 40, treeW: 20, gap: 0.3, step: 2, p: 0.28, depth: 0.33, leaf: 0.45, sway: 1 }),
+    forestLayer(RIDGES[1], { name: 'ridge1', half: !!fx.halfTextures }),
     mist({ p: 0.42, y0: -320, y1: -236, x0: -4000, x1: LAST_X * 0.42 + 4000, amount: 0.45 }),
     // Above the valley: the far cloud sea with K2's neighbours standing out of it, K2's face
     // with the camps, and a nearer deck of cloud around the face's foot.
@@ -155,7 +156,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       },
     },
     mind(fireflies),
-    foreground(),
+    foreground(fx.halfTextures),
     snow(fx.snow, fx.still),
   ];
   layers.forEach((l, i) => {
@@ -302,6 +303,7 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
     },
     size: () => ({ viewW, viewH }),
     dispose() {
+      for (const l of layers) l.dispose?.();
       scene.traverse((o) => {
         const mesh = o as THREE.Mesh;
         mesh.geometry?.dispose();
