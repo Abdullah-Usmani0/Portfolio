@@ -18,7 +18,7 @@ class LakeKit:
         self.stone = ashlar("stage-stone", "#a29c93", 12.0, 5.5)
         self.coping = ashlar("stage-coping", "#bbb5ab", 18.0, 2.5)
         self.bezel = paint("bezel", "#26272c", 0.4, 0.4)
-        self.alu = paint("truss-alu", "#9ea3a8", 0.35, 0.85)
+        self.alu = paint("truss-alu", "#c9ced4", 0.3, 0.7)
         self.black = paint("can-black", "#1c1d21", 0.5, 0.5)
         self.footlight = glass("footlight", "#ffd9a0", 9.0)
 
@@ -71,7 +71,7 @@ def build_stage(kit: Kit, s: dict):
 
 # The truss: how far back it stands, and its square section.
 TRUSS_D = 26.0
-HALF = 3.2
+HALF = 4.0
 CORNERS = [(-HALF, -HALF), (HALF, -HALF), (HALF, HALF), (-HALF, HALF)]
 
 
@@ -88,7 +88,7 @@ def build_truss(kit: Kit, s: dict):
     obs = []
     # The beam: four chords, braced in zigzags on every side.
     for dz, dd in corners:
-        obs.append(rod("chord", (x0 + ox, d + dd, y + dz + oz), (x1 + ox, d + dd, y + dz + oz), 0.55, lk.alu, 8))
+        obs.append(rod("chord", (x0 + ox, d + dd, y + dz + oz), (x1 + ox, d + dd, y + dz + oz), 0.95, lk.alu, 8))
     n = int((x1 - x0) / 6.4)
     for i in range(n):
         a = x0 + (x1 - x0) * i / n + ox
@@ -97,7 +97,7 @@ def build_truss(kit: Kit, s: dict):
             flip = i % 2
             pa = (a, d + (da if not flip else db), y + (za if not flip else zb) + oz)
             pb = (b, d + (db if not flip else da), y + (zb if not flip else za) + oz)
-            obs.append(rod("brace", pa, pb, 0.3, lk.alu, 6))
+            obs.append(rod("brace", pa, pb, 0.5, lk.alu, 6))
     # Under each lamp the site lights: a clamp, a yoke and a spotlight can facing the eye.
     lamps = p["lamps"]
     for k in range(0, len(lamps), 2):
@@ -122,7 +122,7 @@ def build_tower(kit: Kit, s: dict):
     z0, z1 = foot + oz, y - HALF + oz
     obs = []
     for dx, dd in CORNERS:
-        obs.append(rod("tower-chord", (tx + dx + ox, d + dd, z0), (tx + dx + ox, d + dd, z1), 0.55, lk.alu, 8))
+        obs.append(rod("tower-chord", (tx + dx + ox, d + dd, z0), (tx + dx + ox, d + dd, z1), 0.95, lk.alu, 8))
     m = int((z1 - z0) / 6.4)
     for i in range(m):
         za = z0 + (z1 - z0) * i / m
@@ -131,7 +131,7 @@ def build_tower(kit: Kit, s: dict):
             flip = i % 2
             pa = (tx + (xa if not flip else xb) + ox, d + (da if not flip else db), za)
             pb = (tx + (xb if not flip else xa) + ox, d + (db if not flip else da), zb)
-            obs.append(rod("tower-brace", pa, pb, 0.3, lk.alu, 6))
+            obs.append(rod("tower-brace", pa, pb, 0.5, lk.alu, 6))
     obs.append(box("base-plate", tx - 7 + ox, tx + 7 + ox, d - 7, d + 7, z0 - 1.0, z0, lk.black, 0.3))
     return obs, z0 - 1.0, {"shadow": False}
 
