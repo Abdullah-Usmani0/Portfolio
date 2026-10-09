@@ -7,10 +7,13 @@
  * trailhead, ask the manager, hand work in at the grader, then cross the bridge, where a
  * missing plank is the stumble a cohort finds before a real learner does.
  */
+import { fbm } from '../gl/flat.ts';
 import { onValley, riverTop } from './valley.ts';
 
 /** The set piece is drawn closer than the village, so it reads at a glance. */
 export const SCALE = 1.8;
+/** The bridge's two missing planks, once mended: a render of their own (structures.ts), which the scene shows or hides. */
+export const BRIDGE_FIX = 10;
 /** The five learner personas, each in its own scarf colour. */
 export const PERSONAS = ['#7fb2e8', '#f0a35e', '#b892e0', '#8cc77a', '#e8c95a'] as const;
 /** The learner whose stage reads two ways: the one who asks, and the first to stumble. */
@@ -65,6 +68,31 @@ export function provingLayout() {
 }
 
 export type ProvingLayout = ReturnType<typeof provingLayout>;
+
+/**
+ * The gorge the bridge crosses: a back wall of rock with a notch the cascade pours through,
+ * and a rocky shoulder either side that the trail runs over, falling away in a cliff to the
+ * water. Outlines in valley units, read by the painted scene and by its Blender model.
+ */
+export function gorgeLayout(L: ProvingLayout) {
+  const { bx, left, right, deckY, ramp, trail } = L;
+  const rough = fbm(57, 3);
+  const wallTop = (x: number) => deckY + 50 + 18 * rough(x / 40) - 34 * Math.exp(-(((x - bx) / 36) ** 2));
+  const shoulders = ([-1, 1] as const).map((side) => {
+    const outer = side < 0 ? left - ramp - 30 : right + ramp + 30;
+    const inner = side < 0 ? bx - 26 : bx + 26;
+    const from = Math.min(outer, inner);
+    const to = Math.max(outer, inner);
+    /** Its top at x: the trail, then the drop to the cascade. */
+    const top = (x: number) => {
+      const toCliff = side < 0 ? smooth(inner - 34, inner, x) : 1 - smooth(inner, inner + 34, x);
+      const ground = trail(Math.min(Math.max(x, from), to)) - 3 + 3 * rough(x / 18);
+      return ground - toCliff * (deckY - riverTop(x) + 6);
+    };
+    return { side, from, to, top };
+  });
+  return { wall: { from: left - 20, to: right + 20, top: wallTop }, shoulders, bottom: riverTop(bx) - 4, fall: { top: wallTop(bx) - 3, bottom: riverTop(bx) - 6 } };
+}
 
 /** What a dive step makes the cohort do; `loop` is the scene without a dive. */
 export type ProvingStep = 'loop' | 'personas' | 'cold' | 'ask' | 'handin' | 'stumble' | 'fix' | 'rerun';

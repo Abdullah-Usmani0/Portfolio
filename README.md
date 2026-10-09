@@ -88,6 +88,26 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
   own carved rock and snow. Each layer is rendered side-on in tiles and relit by the hour
   like the mountains; tiles load as the camera nears them, their treetops sway, the nearest
   ground goes soft under the words, and the painted layer shows until a tile is in.
+- **The buildings and fields, rendered** (`blender/structures_render.py`, `gl/structure.ts`,
+  `scenery/renderedStructures.ts`). Every building in the valley is modelled in Blender from
+  the numbers its scene paints it with (`scenery/structures.ts`, one module per scene under
+  `blender/structures_*.py`): the village houses, the six council buildings, the farm and its
+  windmill, the gorge and bridge of the proving grounds, the stage on the lake. Each is seen
+  in a light oblique view, so its side and roof show while its front stays exactly where the
+  painted one stood, and its windows, doors and chimneys land where the animation expects
+  them: the people at work behind the council windows, the smoke, the crates on the chute.
+  The farm's hill is terraced so each row's crops (wheat, cabbages, barley, maize, oats,
+  potatoes, sunflowers) fill the band its farmers walk. A building is lit three ways like
+  the mountains, its windows glow at night, and its shadows lie on the ground in a separate
+  coarse layer; the windmill's sails turn as their own render. A dive still opens the
+  painted cutaway: the render gives way as the wall falls.
+- **Tall grass in the wind** (`scenery/grass.ts`, unit-tested). Clumps of blades and seed
+  stalks along the near bank and the meadows, bent by gusts that roll along the valley, lit
+  from behind by a low sun; kept short where the words sit.
+- **Quick to load** (`gl/textures.ts`, `quality.ts`). Textures are decoded off the main
+  thread and uploaded a few per frame, nearest the view first; greyscale ones are stored in
+  one channel; shaders compile before the first frame; the resolution steps down on a slow
+  device; and everything under `/assets` is cached for good.
 - **Light and weather** (`gl/rays.ts`, `scenery/weatherFx.ts`). Light shafts take their
   shape from whatever really stands in front of the sun: the scene is drawn small as
   coverage, and each pixel gathers the open sky between itself and the sun, so the rays

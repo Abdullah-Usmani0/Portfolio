@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
 import { registerAnchors, type Anchor } from '../anchors.ts';
 import { peopleMaterial, smoke } from '../gl/sprites.ts';
+import { renderedStructures } from './renderedStructures.ts';
 import { seeded, tone, type Frame } from './types.ts';
 import { BELL, bellRinging, flashAt, LOOPS, managerAt, roundLength, STYLES, SURFACES, talkerSays, villageLayout, type HouseKind, type Surface, type VillageStep } from './villageLayout.ts';
 
@@ -189,7 +190,7 @@ const portrait = () =>
  * office that sends check-ins. The studio gives characters their faces and voices, and in
  * the square four villagers talk, each in their own way. Windows light up at dusk.
  */
-export function village(group: THREE.Group) {
+export function village(group: THREE.Group, half = false) {
   const L = villageLayout();
   const rnd = seeded(42);
   const walls: number[] = [];
@@ -199,24 +200,16 @@ export function village(group: THREE.Group) {
   const chimneys: [number, number][] = [];
   for (const h of L.houses) {
     const { x0, w, base } = h;
-    const hall = h.kind === 'kickoff';
     quad(walls, x0, base, x0 + w, base + h.h);
     roofs.push(x0 - 6, base + h.h, 0, x0 + w + 6, base + h.h, 0, x0 + w / 2, base + h.h + h.roof, 0);
-    if (h.kind === 'home' || rnd() > 0.4) {
-      const chx = x0 + w * (0.68 + rnd() * 0.12);
-      quad(roofs, chx, base + h.h + h.roof * 0.3, chx + 7, base + h.h + h.roof * 0.95);
-      chimneys.push([chx + 3.5, base + h.h + h.roof]);
+    if (h.chimney) {
+      quad(roofs, h.chimney.x, h.chimney.y0, h.chimney.x + 7, h.chimney.y1);
+      chimneys.push([h.chimney.x + 3.5, base + h.h + h.roof]);
     }
-    const dw = hall ? 9 : 4.5;
-    quad(doors, h.door - dw, base, h.door + dw, base + (hall ? 22 : 15));
-    // Windows either side of the door; the studio has one big window above it instead.
-    if (h.kind === 'studio') quad(windows, h.door - 20, base + 20, h.door + 20, base + 38);
-    else
-      for (const k of w > 50 ? [0.2, 0.8] : [0.22]) {
-        const wx = x0 + w * k - 5;
-        quad(windows, wx, base + h.h * 0.42, wx + 10, base + h.h * 0.42 + (hall ? 14 : 11));
-      }
+    quad(doors, h.door - h.doorW, base, h.door + h.doorW, base + h.doorH);
+    for (const [wx, wy, ww, wh] of h.windows) quad(windows, wx, wy, wx + ww, wy + wh);
   }
+  const painted: THREE.Mesh[] = [];
   const mesh = (data: number[], z: number) => {
     const g = new THREE.BufferGeometry();
     g.setAttribute('position', new THREE.Float32BufferAttribute(data, 3));
@@ -224,12 +217,15 @@ export function village(group: THREE.Group) {
     const o = new THREE.Mesh(g, m);
     o.position.z = z;
     group.add(o);
+    painted.push(o);
     return m;
   };
   const wallMat = mesh(walls, 0.5);
   const roofMat = mesh(roofs, 0.51);
   const winMat = mesh(windows, 0.52);
   const doorMat = mesh(doors, 0.521);
+  // The houses as rendered in Blender, over the painted ones until they are in.
+  const rendered = renderedStructures(group, 'npcs', { z: 0.522, half });
 
   const chimneySmoke = smoke(chimneys);
   chimneySmoke.points.position.z = 0.53;
@@ -378,6 +374,9 @@ export function village(group: THREE.Group) {
   let stepStart = 0;
 
   return (f: Frame) => {
+    rendered?.update(f);
+    const done = (rendered?.shown() ?? 0) >= 1;
+    for (const m of painted) m.visible = !done;
     const base = tone(f.look, 0.2, 0.2);
     wallMat.color.set(mixHex(base, '#f0e3cf', 0.6));
     roofMat.color.set(mixHex(base, '#7d3d33', 0.45));

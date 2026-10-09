@@ -4,6 +4,7 @@ import { shared } from '../gl/flat.ts';
 import { registerAnchors, type Anchor } from '../anchors.ts';
 import { peopleMaterial, pointScale } from '../gl/sprites.ts';
 import { worldView } from '../view.ts';
+import { renderedStructures } from './renderedStructures.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
 import { boatAt, framesAt, FRAMES, lakeLayout, lampAt, LOOPS, packetsAt, RACE, spokenBy, VERDICT, type LakeStep, type PacketKind } from './lakeLayout.ts';
@@ -80,7 +81,10 @@ const PACKET_COLOR: Record<PacketKind, string> = { voice: '#7fe8ff', text: '#f6f
  * stage, a lighting truss carries the voice pipeline, a lamp per stage of it; on the shore,
  * a learner's laptop shares its screen through a gate that drops the frames already seen.
  */
-export function lake(group: THREE.Group) {
+/** Where each rendered piece lies: the stage just under the picture on its screen, the truss behind the lamps. */
+const RENDER_Z: Readonly<Record<string, number>> = { 'lake-stage': 0.4502, 'lake-truss': 0.4305, 'lake-tower0': 0.4305, 'lake-tower1': 0.4305 };
+
+export function lake(group: THREE.Group, half = false) {
   const L = lakeLayout();
   const { cx, ax, shore } = L;
 
@@ -88,6 +92,9 @@ export function lake(group: THREE.Group) {
   // in front of it, watching it speak.
   const stone = new THREE.MeshBasicMaterial();
   const stoneShade = new THREE.MeshBasicMaterial();
+  // What the Blender renders replace, once they are in.
+  const stageParts: THREE.Mesh[] = [];
+  const trussParts: THREE.Mesh[] = [];
   let top = shore(ax) - 2;
   [300, 236, 176].forEach((w, k) => {
     const face = new THREE.Mesh(new THREE.PlaneGeometry(w, 11), stoneShade);
@@ -95,6 +102,7 @@ export function lake(group: THREE.Group) {
     const tread = new THREE.Mesh(new THREE.PlaneGeometry(w, 2.5), stone);
     tread.position.set(ax, top + 9.75, 0.441 + k * 0.002);
     group.add(face, tread);
+    stageParts.push(face, tread);
     top += 11;
   });
   const screen = screenMaterial();
@@ -108,6 +116,7 @@ export function lake(group: THREE.Group) {
     return leg;
   });
   group.add(frame, display, ...legs);
+  stageParts.push(frame, ...legs);
 
   // The truss: two posts from the plinth and a beam, a lamp per stage of the pipeline.
   const steel = new THREE.MeshBasicMaterial();
@@ -115,15 +124,18 @@ export function lake(group: THREE.Group) {
   const beam = new THREE.Mesh(new THREE.PlaneGeometry(span.x1 - span.x0, 4), steel);
   beam.position.set((span.x0 + span.x1) / 2, L.trussY, 0.43);
   group.add(beam);
+  trussParts.push(beam);
   for (const x of [span.x0 + 4, span.x1 - 4]) {
     const h = L.trussY - shore(x);
     const post = new THREE.Mesh(new THREE.PlaneGeometry(3.4, h), steel);
     post.position.set(x, shore(x) + h / 2, 0.43);
     group.add(post);
+    trussParts.push(post);
   }
   const lampMats = L.lamps.map((l) => {
     const hanger = new THREE.Mesh(new THREE.PlaneGeometry(1.2, 6), steel);
     hanger.position.set(l.x, L.trussY - 3, 0.43);
+    trussParts.push(hanger);
     const m = new THREE.MeshBasicMaterial({ transparent: true, depthWrite: false });
     const lamp = new THREE.Mesh(new THREE.CircleGeometry(6.5, 20), m);
     lamp.position.set(l.x, l.y, 0.47);
@@ -137,6 +149,8 @@ export function lake(group: THREE.Group) {
   const drop = new THREE.Mesh(new THREE.PlaneGeometry(1.2, L.trussY - 9 - (L.screenY + 49)), steel);
   drop.position.set(L.lamps.at(-1)!.x, (L.trussY - 9 + L.screenY + 49) / 2, 0.43);
   group.add(drop);
+  trussParts.push(drop);
+  const rendered = renderedStructures(group, 'voice', { z: 0.4502, half, zOf: (id) => RENDER_Z[id] });
 
   // The scoreboard at the truss's foot, where a verdict goes instead of the speaker.
   const board = new THREE.Mesh(
@@ -339,6 +353,11 @@ export function lake(group: THREE.Group) {
 
   return (f: Frame) => {
     const { look } = f;
+    rendered?.update(f);
+    const stageIn = (rendered?.fadeOf('lake-stage') ?? 0) >= 1;
+    for (const m of stageParts) m.visible = !stageIn;
+    const trussIn = Math.min(...['lake-truss', 'lake-tower0', 'lake-tower1'].map((id) => rendered?.fadeOf(id) ?? 0)) >= 1;
+    for (const m of trussParts) m.visible = !trussIn;
     const shade = tone(look, 0.2, 0.1);
     stone.color.set(mixHex(shade, '#efe6d8', 0.62));
     stoneShade.color.set(mixHex(shade, '#a39684', 0.5));

@@ -88,9 +88,10 @@ export function stripMaterial(light: THREE.Texture, mask: THREE.Texture, o: { sc
       varying vec2 vPos;
       varying float vLift;
       varying float vEdge;
-      // The k-th image of a stack (0 the top), at uv; slot = (one image's share, step to the next).
+      // The k-th image of a stack (0 the top), at uv; slot = (one image's share, step to the
+      // next). Textures are stored top row first.
       vec4 slot(sampler2D tex, vec2 s, float k, vec2 uv) {
-        return texture2D(tex, vec2(uv.x, 1.0 - k * s.y - (1.0 - uv.y) * s.x));
+        return texture2D(tex, vec2(uv.x, k * s.y + (1.0 - uv.y) * s.x));
       }
       vec3 srgb(vec3 c) {
         c = max(c, 0.0);

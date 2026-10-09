@@ -6,11 +6,13 @@ import { createSky } from './gl/sky.ts';
 import { pointScale } from './gl/sprites.ts';
 import { LAST_X, type Shot } from './journey.ts';
 import { pointer } from './pointer.ts';
+import { createQuality } from './quality.ts';
 import { leanTarget } from './tilt.ts';
 import { ascentFace } from './scenery/ascent.ts';
 import { birds, clouds, mist } from './scenery/atmosphere.ts';
 import { cloudSea } from './scenery/cloudSea.ts';
 import { foreground } from './scenery/foreground.ts';
+import { stripWarmup } from './scenery/renderedStrip.ts';
 import { K2_SUMMIT, mountains } from './scenery/mountains.ts';
 import { forestLayer, RIDGES } from './scenery/ridges.ts';
 import type { Frame, Layer } from './scenery/types.ts';
@@ -38,6 +40,8 @@ const TILT_X = 46;
 const TILT_Y = 24;
 /** Seconds the eye takes to settle where the cursor asks. */
 const LEAN = 0.55;
+/** The longest the first frame waits for the shaders to compile, in milliseconds. */
+const COMPILE_WAIT = 4000;
 
 /** A dive in progress: the camera dollies towards one point of one layer. */
 export interface DiveView {
@@ -73,6 +77,8 @@ export interface World {
   project: (group: THREE.Object3D, x: number, y: number) => { x: number; y: number } | null;
   /** The view's size in world units, after the last resize. */
   size: () => { viewW: number; viewH: number };
+  /** Whether the first frame has been drawn, and what is on the GPU (for tests). */
+  info: () => { ready: boolean; programs: number; textures: number; geometries: number };
   dispose: () => void;
 }
 
@@ -83,9 +89,12 @@ export interface World {
  */
 export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies: number, fx: WorldEffects): World {
   THREE.ColorManagement.enabled = false;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+  const dpr = Math.min(window.devicePixelRatio || 1, maxDpr);
+  // At two device pixels to a CSS pixel, edges are already fine; multisampling there costs a lot.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: dpr < 2, powerPreference: 'high-performance' });
   renderer.outputColorSpace = THREE.LinearSRGBColorSpace;
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, maxDpr));
+  renderer.setPixelRatio(dpr);
+  const quality = createQuality(dpr, Math.min(1, dpr));
   renderer.setClearColor(0x000000, 1);
 
   const scene = new THREE.Scene();
@@ -95,11 +104,11 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
   scene.add(sky.mesh);
 
   const valleyLayer = valley(fx.halfTextures);
-  const updateVillage = village(valleyLayer.group);
-  const updateCouncils = councils(valleyLayer.group);
-  const updateFarm = farm(valleyLayer.group);
-  const updateProving = provingGrounds(valleyLayer.group);
-  const updateLake = lake(valleyLayer.group);
+  const updateVillage = village(valleyLayer.group, fx.halfTextures);
+  const updateCouncils = councils(valleyLayer.group, fx.halfTextures);
+  const updateFarm = farm(valleyLayer.group, fx.halfTextures);
+  const updateProving = provingGrounds(valleyLayer.group, fx.halfTextures);
+  const updateLake = lake(valleyLayer.group, fx.halfTextures);
 
   // Far to near; each gets its own depth slot in z. K2's summit trails a plume of spindrift.
   const [k2, ...ranges] = mountains(fx.halfTextures);
@@ -156,13 +165,37 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       },
     },
     mind(fireflies),
-    foreground(fx.halfTextures),
+    foreground(fx.halfTextures, fx.still),
     snow(fx.snow, fx.still),
   ];
   layers.forEach((l, i) => {
     l.group.position.z = i * 2;
     scene.add(l.group);
   });
+
+  // Every shader compiled before the first frame, in the background where the browser can
+  // (a shader compiled at its first draw stalls that frame, all of them at once for seconds
+  // on a slow device). Hidden things too, and the shader the rendered tiles will use once
+  // they load. The opening veil covers the wait; it is never longer than COMPILE_WAIT.
+  let compiled = false;
+  const warm = stripWarmup();
+  scene.add(warm);
+  const hidden: THREE.Object3D[] = [];
+  scene.traverse((o) => {
+    if (!o.visible) {
+      o.visible = true;
+      hidden.push(o);
+    }
+  });
+  const go = () => {
+    compiled = true;
+  };
+  renderer.compileAsync(scene, camera).then(go, go);
+  window.setTimeout(go, COMPILE_WAIT);
+  for (const o of hidden) o.visible = false;
+  scene.remove(warm);
+  warm.geometry.dispose();
+  (warm.material as THREE.Material).dispose();
 
   let viewW = VIEW_H;
   let viewH = VIEW_H;
@@ -270,6 +303,16 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
       }
       // Sprites (smoke, lanterns, fireflies) grow with the layer the camera is diving into.
       pointScale.value = basePointScale * (target && diving ? diving.zoom : 1);
+      // Everything above ran (so downloads have started); nothing is drawn until the shaders are in.
+      if (!compiled) return;
+      // A machine that cannot keep up draws a little coarser (see quality.ts).
+      const sharp = quality.step(dt, time);
+      if (sharp !== null) {
+        renderer.setPixelRatio(sharp);
+        renderer.setSize(cssW, cssH, false);
+        basePointScale = (cssH / viewH) * sharp;
+        pointScale.value = basePointScale * (target && diving ? diving.zoom : 1);
+      }
       const { look } = shot;
       sky.uniforms.uTop.value.set(look.skyTop);
       sky.uniforms.uHorizon.value.set(look.skyHorizon);
@@ -294,6 +337,12 @@ export function createWorld(canvas: HTMLCanvasElement, maxDpr: number, fireflies
         shafts.composite(renderer, rayColor, rays);
       }
     },
+    info: () => ({
+      ready: compiled,
+      programs: renderer.info.programs?.length ?? 0,
+      textures: renderer.info.memory.textures,
+      geometries: renderer.info.memory.geometries,
+    }),
     project(group, x, y) {
       const l = layers.find((layer) => layer.group === group);
       if (!l || !l.group.visible) return null;

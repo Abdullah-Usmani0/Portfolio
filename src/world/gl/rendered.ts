@@ -62,9 +62,9 @@ export function renderedMaterial(light: THREE.Texture, mask: THREE.Texture, o: {
       uniform float uStride;
       varying vec2 vUv;
       varying float vDeg;
-      // The k-th image of a stack (0 the top), at this point.
+      // The k-th image of a stack (0 the top), at this point; textures are stored top row first.
       float slot(sampler2D tex, float k) {
-        return texture2D(tex, vec2(vUv.x, 1.0 - k * uStride - (1.0 - vUv.y) * uSlot)).r;
+        return texture2D(tex, vec2(vUv.x, k * uStride + (1.0 - vUv.y) * uSlot)).r;
       }
       vec3 srgb(vec3 c) {
         c = max(c, 0.0);

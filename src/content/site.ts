@@ -47,9 +47,9 @@ export const metrics = [
 export const chapters: readonly Chapter[] = [
   {
     id: 'npcs',
-    line: 'AI coworkers with a voice, a memory and a personality of their own.',
+    line: 'Each one is a whole person, with a voice, a face, a personality and a memory of you.',
     kicker: 'AI coworkers',
-    title: 'AI characters people actually *talk to*.',
+    title: 'AI managers that *brief, coach and review* learners.',
     lead: 'Every character on Zero is a person, not a prompt. Each has about ninety traits, a voice of its own, a memory of you, and a context window rebuilt for every turn. A manager stays the same person across chat, planning, grading and nudges.',
     proofs: [
       { stat: '~90', label: 'traits per character', text: 'Personality, communication style, voice and look, generated once and kept consistent.' },
@@ -60,9 +60,9 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'councils',
-    line: '127 tool-bound agents build a curriculum, and learn from every run.',
-    kicker: 'Curriculum Council',
-    title: 'Six councils of agents that *improve themselves*.',
+    line: 'Give them a job role: they research, write and check a whole course on their own, and learn from their mistakes.',
+    kicker: 'AI course builder',
+    title: '127 AI agents that *build training courses*.',
     lead: '127 tool-bound agents research, design, build, audit, train and film a curriculum. A SkillOps loop turns their recurring failures into better prompts, but only once the evidence spans enough scenarios to be a real pattern.',
     proofs: [
       { stat: '127', label: 'tool-bound agents', text: 'One agent per tool, organised into six councils with their own memory and playbooks.' },
@@ -73,9 +73,9 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'scenarios',
-    line: 'Focus maps, scenarios and stages, with an exemplar that shows what good looks like.',
+    line: 'Realistic projects at believable companies, with files, a manager’s brief and an example of good work.',
     kicker: 'Scenario generation',
-    title: 'One job role in, *a world of work* out.',
+    title: 'Any job role, turned into *hands-on practice work*.',
     lead: 'A role becomes a focus map, the map becomes scenarios, and each scenario becomes objectives and typed stages, with the resources, voice notes, checks and the What Good Looks Like exemplar a learner needs to do real work.',
     proofs: [
       { stat: 'WGLL', label: 'what good looks like', text: 'An exemplar planned against the grading checks, built as data and rendered by code, so learners see the bar before they build.' },
@@ -86,9 +86,9 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'learners',
-    line: 'Simulated cohorts play every scenario before a real person does.',
+    line: 'They play each scenario start to finish, so confusing steps are fixed before a real person reaches them.',
     kicker: 'Simulated learners',
-    title: 'Learners that *fail first*, so real ones don’t.',
+    title: 'AI test students that *try every course first*.',
     lead: 'Before a scenario ships, a cohort of simulated learners plays it through the real platform. They read each stage cold, ask the manager, hand in real files and retry until they pass. Where they stumble becomes a fix.',
     proofs: [
       { stat: '5', label: 'learner personas', text: 'From a nervous first-timer to a domain expert, each with its own habits.' },
@@ -99,9 +99,9 @@ export const chapters: readonly Chapter[] = [
   },
   {
     id: 'voice',
-    line: 'Live tutoring on LiveKit, with 2.1 seconds to the first spoken sentence.',
+    line: 'It listens, answers out loud with a moving face, and starts speaking 2.1 seconds after you stop.',
     kicker: 'Real-time voice',
-    title: 'Voice agents that *feel like a call*.',
+    title: 'Live video calls with *an AI manager*.',
     lead: 'LiveKit meeting agents tutor learners live, with avatar video from Tavus and HeyGen. Grading and replying in one streamed call cut the wait for the first spoken sentence from 5.4 to 2.1 seconds.',
     proofs: [
       { stat: '2.1 s', label: 'to first sentence', text: 'Down from 5.4 s: the verdict streams first and the reply follows in the same call.' },
@@ -114,9 +114,9 @@ export const chapters: readonly Chapter[] = [
 
 export const mind = {
   id: 'mind',
-  line: 'How every character’s mind is assembled, one block at a time.',
+  line: 'Ten blocks of context, put together in the same order every time it replies.',
   kicker: 'Context engineering',
-  title: 'Context, *poured in order*.',
+  title: 'How each AI coworker *decides what to think about*.',
   lead: 'Every turn, a character’s context is assembled block by block, identity first and voice last. Everything above the cache line is a stable prefix the model has already read. Below it is the live turn.',
   blocks: [
     ['Identity', 'Who this person is'],
@@ -142,9 +142,9 @@ export const mind = {
 
 export const ascent = {
   id: 'ascent',
-  line: 'From base camp at university to founding engineer at Zero.',
+  line: 'Every role so far, as a camp on the way up K2.',
   kicker: 'Career',
-  title: 'Camp by camp, *up the mountain*.',
+  title: 'From university to *founding AI engineer*.',
   lead: 'Every role was a camp on the way up. The mountain is K2, 8,611 metres, and the summit is what comes next.',
   camps: [
     {
@@ -237,7 +237,7 @@ export const skills = [
 export const summit = {
   id: 'summit',
   kicker: 'What comes next',
-  title: 'The summit is *the future*.',
+  title: 'Building AI colleagues, *not chatbots*.',
   vision:
     'I think the next interface is a colleague. AI people with their own voice, memory and judgement, who work beside us and get better every week from the work itself. That is what I am building toward, one scenario and one turn of context at a time.',
 } as const;

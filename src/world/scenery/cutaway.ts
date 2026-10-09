@@ -19,6 +19,8 @@ export class Painter {
   slot: number[] = [];
   /** Per vertex: the building (index + 1) whose cutaway hides it, or 0. */
   cut: number[] = [];
+  /** Per vertex: the building (index + 1) it was painted for, or 0. */
+  owner: number[] = [];
   /** The building being painted (index + 1), and each one's frame for the camera. */
   private building = 0;
   boxes: Box[] = [];
@@ -45,6 +47,7 @@ export class Painter {
     this.slot.push(s, s, s);
     const c = opens ? this.building : 0;
     this.cut.push(c, c, c);
+    this.owner.push(this.building, this.building, this.building);
     const box = this.building && this.framing ? this.boxes[this.building - 1] : undefined;
     if (box) {
       box.x0 = Math.min(box.x0, ax, bx, cx);
@@ -97,6 +100,7 @@ export class Painter {
     g.setAttribute('position', new THREE.Float32BufferAttribute(this.pos, 3));
     g.setAttribute('aSlot', new THREE.Float32BufferAttribute(this.slot, 1));
     g.setAttribute('aCut', new THREE.Float32BufferAttribute(this.cut, 1));
+    g.setAttribute('aOwner', new THREE.Float32BufferAttribute(this.owner, 1));
     return new THREE.Mesh(g, material);
   }
 }
@@ -110,21 +114,33 @@ export const cutGlsl = (buildings: number) => /* glsl */ `
   uniform float uCut[${buildings}];
   float openness() { return aCut > 0.5 ? uCut[int(aCut - 0.5)] : 0.0; }`;
 
-/** Flat colours by slot, with front walls fading to a ghost of themselves as they open. */
-export function paletteMaterial(cut: { value: number[] }, slots: number) {
+/**
+ * Flat colours by slot, with front walls fading to a ghost of themselves as they open. With
+ * `shown`, what was painted is drawn only as much as its entry says (1 drawn, 0 hidden):
+ * entry 0 for what belongs to no building, entry k + 1 for building k. A building rendered
+ * in Blender hides its painted self until a dive opens it.
+ */
+export function paletteMaterial(cut: { value: number[] }, slots: number, shown?: { value: number[] }) {
   const colors = Array.from({ length: slots }, () => new THREE.Color());
   const material = new THREE.ShaderMaterial({
-    uniforms: { uColors: { value: colors }, uCut: cut, uOpacity: { value: 1 } },
+    uniforms: { uColors: { value: colors }, uCut: cut, uOpacity: { value: 1 }, ...(shown ? { uShown: shown } : {}) },
     transparent: true,
     vertexShader: /* glsl */ `
       attribute float aSlot;
       uniform vec3 uColors[${slots}];
       ${cutGlsl(cut.value.length)}
+      ${
+        shown
+          ? `attribute float aOwner;
+      uniform float uShown[${shown.value.length}];
+      float shown() { return uShown[int(aOwner + 0.5)]; }`
+          : 'float shown() { return 1.0; }'
+      }
       varying vec3 vColor;
       varying float vAlpha;
       void main() {
         vColor = uColors[int(aSlot + 0.5)];
-        vAlpha = 1.0 - 0.95 * openness();
+        vAlpha = (1.0 - 0.95 * openness()) * shown();
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `

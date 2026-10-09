@@ -87,8 +87,12 @@ export interface FlatUniforms {
 export interface Clip {
   x0: number;
   width: number;
+  /** CLIP_SLOTS long: slots past the last tile stay huge (uncovered). */
   ys: Float32Array;
 }
+
+/** Tiles a clip can hold. One size for every layer, so they all share one compiled shader. */
+export const CLIP_SLOTS = 64;
 
 /**
  * Vertical gradient from `uBottom` (at y ≤ uY0) to `uTop` (at y ≥ uY1), with optional sway.
@@ -111,7 +115,7 @@ export function flatMaterial(opts: { y0: number; y1: number; sway?: number; tran
   const defines: Record<string, string> = {};
   if (opts.lift) defines.LIFT = '';
   if (opts.clip) {
-    defines.CLIP = String(opts.clip.ys.length);
+    defines.CLIP = String(CLIP_SLOTS);
     uniforms.uClipX0 = { value: opts.clip.x0 };
     uniforms.uClipW = { value: opts.clip.width };
     uniforms.uClipY = { value: opts.clip.ys };

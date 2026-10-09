@@ -59,3 +59,14 @@ export function relight(look: Pick<WorldLook, 'sun' | 'snow' | 'skyTop' | 'skyHo
     glowDeg: -30 + 49 * smooth(0.06, -0.1, look.sunY),
   };
 }
+
+let cachedLook: unknown = null;
+let cached: Relight | null = null;
+/** `relight` for the frame's look, worked out once however many layers ask. */
+export function relightFor(look: Parameters<typeof relight>[0]): Relight {
+  if (look !== cachedLook || !cached) {
+    cached = relight(look);
+    cachedLook = look;
+  }
+  return cached;
+}

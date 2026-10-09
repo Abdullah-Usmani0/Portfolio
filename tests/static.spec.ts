@@ -5,7 +5,7 @@ import { collectErrors, open, PHONE, type SiteHook } from './site.ts';
 test('every word is on the page, without WebGL too, and no phone number anywhere', async ({ page }) => {
   await open(page);
   await expect(page.locator('h1')).toContainText('Muhammad Abdullah Usmani');
-  for (const kicker of ['AI coworkers', 'Curriculum Council', 'Scenario generation', 'Simulated learners', 'Real-time voice']) {
+  for (const kicker of ['AI coworkers', 'AI course builder', 'Scenario generation', 'Simulated learners', 'Real-time voice']) {
     await expect(page.getByText(kicker, { exact: true }).first()).toBeAttached();
   }
   await expect(page.getByText('abdullahusmani74@gmail.com').first()).toBeAttached();
@@ -38,7 +38,7 @@ test('How it works explains all six systems plainly, passes axe, and leads back'
   await open(page, '/#systems');
   await expect(page.locator('.systems h1')).toContainText('in plain words');
   await expect(page.locator('.systems .sys')).toHaveCount(6);
-  for (const kicker of ['Curriculum Council', 'Scenario generation', 'Simulated learners', 'AI coworkers', 'Context engineering', 'Real-time voice']) {
+  for (const kicker of ['AI course builder', 'Scenario generation', 'Simulated learners', 'AI coworkers', 'Context engineering', 'Real-time voice']) {
     await expect(page.locator('.systems .sys .eyebrow', { hasText: kicker })).toHaveCount(1);
   }
   const text = await page.locator('.systems').innerText();

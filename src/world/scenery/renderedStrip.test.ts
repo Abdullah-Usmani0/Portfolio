@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import index from '../data/foregroundRender.json';
+import { CLIP_SLOTS } from '../gl/flat.ts';
 
 /** Every rendered tile's texture file, listed (not loaded). */
 const FILES = Object.keys(import.meta.glob('../textures/foreground/*.webp', { query: '?url', import: 'default' }));
@@ -19,6 +20,13 @@ describe('the rendered foreground', () => {
         // Heights in whole steps of 8, so every stored size keeps whole rows.
         expect((t.y1 - t.y0) % 8).toBe(0);
       });
+    }
+  });
+
+  it('fits every layer in one clip, so the painted layers share one shader', () => {
+    for (const [, layer] of layers) {
+      const width = layer.tiles[0]!.x1 - layer.tiles[0]!.x0;
+      expect(Math.round((layer.tiles.at(-1)!.x1 - layer.tiles[0]!.x0) / width)).toBeLessThanOrEqual(CLIP_SLOTS);
     }
   });
 

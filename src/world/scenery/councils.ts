@@ -2,7 +2,9 @@ import * as THREE from 'three';
 import { mixHex, smootherstep } from '@/motion/color.ts';
 import { ANCHOR_IDS } from '../anchorIds.ts';
 import { registerAnchors, type Anchor } from '../anchors.ts';
-import { Painter, anchorOfBox, cutGlsl, cutUniform, paletteMaterial, type Box } from './cutaway.ts';
+import { BUILDINGS, councilsLayout, type Pane } from './councilsLayout.ts';
+import { Painter, anchorOfBox, cutGlsl, cutUniform, paletteMaterial } from './cutaway.ts';
+import { renderedStructures } from './renderedStructures.ts';
 import { shared } from '../gl/flat.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
 import {
@@ -17,7 +19,7 @@ import {
 } from './interiors.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
-import { onValley, riverTop } from './valley.ts';
+import { riverTop } from './valley.ts';
 
 /**
  * The council town: six buildings for the six councils of agents, each with its own shape,
@@ -26,8 +28,6 @@ import { onValley, riverTop } from './valley.ts';
  * to show the room behind it and the people at work there.
  */
 
-/** The six councils, in the order they stand along the river. */
-const BUILDINGS = ['research', 'design', 'implementation', 'audit', 'training', 'media'] as const;
 
 const SLOTS = {
   wall: 0,
@@ -76,21 +76,17 @@ class Windows {
       this.cut.push(this.building);
     }
   }
-  grid(x0: number, x1: number, y0: number, y1: number, cols: number, rows: number, seed: number) {
-    const gw = (x1 - x0) / cols;
-    const gh = (y1 - y0) / rows;
-    for (let c = 0; c < cols; c++) {
-      for (let r = 0; r < rows; r++) {
-        this.add(x0 + c * gw + gw * 0.18, y0 + r * gh + gh * 0.16, gw * 0.64, gh * 0.68, seed + c * 7.13 + r * 3.71);
-      }
-    }
-  }
 }
 
-/** Lit windows with someone at work behind each: walking past, or bent over a glowing screen. */
-function windowMaterial(cut: { value: number[] }) {
+/**
+ * Lit windows with someone at work behind each: walking past, or bent over a glowing screen.
+ * `rendered` says, per building, how far its Blender render is in: its painted frame gives
+ * way to the render's own frame and glass round the room.
+ */
+function windowMaterial(cut: { value: number[] }, rendered: { value: number[] }) {
   const uniforms = {
     uCut: cut,
+    uRendered: rendered,
     uDark: { value: new THREE.Color() },
     uLight: { value: new THREE.Color() },
     uScreen: { value: new THREE.Color('#8fe3ff') },
@@ -104,13 +100,16 @@ function windowMaterial(cut: { value: number[] }) {
     vertexShader: /* glsl */ `
       attribute float aSeed;
       ${cutGlsl(BUILDINGS.length)}
+      uniform float uRendered[${BUILDINGS.length}];
       varying vec2 vUv;
       varying float vSeed;
       varying float vAlpha;
+      varying float vFrame;
       void main() {
         vUv = uv;
         vSeed = aSeed;
         vAlpha = 1.0 - openness();
+        vFrame = 1.0 - uRendered[int(aCut - 0.5)];
         gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
       }`,
     fragmentShader: /* glsl */ `
@@ -123,6 +122,7 @@ function windowMaterial(cut: { value: number[] }) {
       varying vec2 vUv;
       varying float vSeed;
       varying float vAlpha;
+      varying float vFrame;
       float box(vec2 p, vec2 b) { vec2 d = abs(p) - b; return length(max(d, 0.0)) + min(max(d.x, d.y), 0.0); }
       void main() {
         float r1 = fract(sin(vSeed * 12.9898) * 43758.5453);
@@ -152,128 +152,118 @@ function windowMaterial(cut: { value: number[] }) {
         }
         room = mix(room, uDark * 0.55, smoothstep(0.02, -0.02, d) * on);
         float inside = step(0.07, p.x) * step(p.x, 0.93) * step(0.07, p.y) * step(p.y, 0.93);
-        gl_FragColor = vec4(mix(uFrame, room, inside), vAlpha);
+        gl_FragColor = vec4(mix(uFrame, room, inside), vAlpha * mix(vFrame, 1.0, inside));
       }`,
   });
   return { material, uniforms };
 }
 
-export function councils(group: THREE.Group) {
+export function councils(group: THREE.Group, half = false) {
+  const L = councilsLayout();
   const body = new Painter((slot) => slot === SLOTS.wall);
   const win = new Windows();
-  const cx = onValley('councils', 330);
-  const at = (x: number) => riverTop(x) + 1;
+  const panes = (list: readonly Pane[]) => {
+    for (const [x, y, w, h, seed] of list) win.add(x, y, w, h, seed);
+  };
 
   const kit = interiorKit();
   const interiors: Interior[] = [];
 
   // Research: an observatory under a verdigris dome.
   {
-    const x = cx - 470;
-    const y = at(x + 50);
+    const { x, y, w, h, dome } = L.research;
     body.begin(0);
     win.building = 1;
-    body.rect(x, y, x + 100, y + 74, SLOTS.wall);
-    body.rect(x + 100, y, x + 112, y + 74, SLOTS.wallShade);
-    body.rect(x - 4, y + 74, x + 116, y + 80, SLOTS.roof);
-    body.dome(x + 56, y + 80, 46, SLOTS.research);
+    body.rect(x, y, x + w, y + h, SLOTS.wall);
+    body.rect(x + w, y, x + w + 12, y + h, SLOTS.wallShade);
+    body.rect(x - 4, y + h, x + w + 16, y + h + 6, SLOTS.roof);
+    body.dome(dome.cx, dome.cy, dome.r, SLOTS.research);
     body.quadPoints(x + 58, y + 84, x + 66, y + 84, x + 76, y + 118, x + 68, y + 120, SLOTS.dark);
-    win.grid(x + 8, x + 96, y + 10, y + 66, 3, 2, 1);
-    interiors.push(researchInterior(kit, { x, y, w: 100, h: 74, dome: { cx: x + 56, cy: y + 80, r: 46 } }));
+    panes(L.research.windows);
+    interiors.push(researchInterior(kit, { x, y, w, h, dome: { cx: dome.cx, cy: dome.cy, r: dome.r } }));
   }
   // Design: a terraced drafting tower.
   {
-    const x = cx - 320;
-    const y = at(x + 60);
+    const { tiers, spire } = L.design;
     body.begin(1);
     win.building = 2;
-    const rooms: Box[] = [];
-    const tiers = [
-      [0, 120, 70],
-      [16, 104, 56],
-      [32, 88, 46],
-    ] as const;
-    let top = y;
-    tiers.forEach(([inset, right, h], k) => {
-      body.rect(x + inset, top, x + right, top + h, SLOTS.wall);
-      rooms.push({ x0: x + inset, x1: x + right, y0: top, y1: top + h });
-      body.rect(x + inset - 4, top + h, x + right + 4, top + h + 6, SLOTS.design);
-      win.grid(x + inset + 6, x + right - 6, top + 8, top + h - 6, Math.max(2, Math.round((right - inset) / 26)), k === 0 ? 2 : 1, 40 + k * 9);
-      top += h + 6;
-    });
-    body.tri(x + 40, top, x + 80, top, x + 60, top + 26, SLOTS.design);
-    interiors.push(designInterior(kit, rooms));
+    for (const t of tiers) {
+      body.rect(t.x0, t.y0, t.x1, t.y1, SLOTS.wall);
+      body.rect(t.x0 - 4, t.y1, t.x1 + 4, t.y1 + t.ledge, SLOTS.design);
+    }
+    body.tri(spire.x0, spire.y, spire.x1, spire.y, (spire.x0 + spire.x1) / 2, spire.apex, SLOTS.design);
+    panes(L.design.windows);
+    interiors.push(designInterior(kit, tiers));
   }
   // Implementation: a long workshop with a sawtooth roof.
   {
-    const x = cx - 160;
-    const y = at(x + 80);
+    const { x, y, w, h, teeth, tooth, rise } = L.implementation;
     body.begin(2);
     win.building = 3;
-    body.rect(x, y, x + 168, y + 66, SLOTS.wall);
-    for (let k = 0; k < 6; k++) {
-      const sx = x + k * 28;
-      body.tri(sx, y + 66, sx + 28, y + 66, sx + 28, y + 92, SLOTS.build);
-      body.tri(sx + 22, y + 66, sx + 28, y + 66, sx + 28, y + 92, SLOTS.roof);
+    body.rect(x, y, x + w, y + h, SLOTS.wall);
+    for (let k = 0; k < teeth; k++) {
+      const sx = x + k * tooth;
+      body.tri(sx, y + h, sx + tooth, y + h, sx + tooth, y + h + rise, SLOTS.build);
+      body.tri(sx + tooth - 6, y + h, sx + tooth, y + h, sx + tooth, y + h + rise, SLOTS.roof);
     }
-    win.grid(x + 8, x + 160, y + 10, y + 58, 6, 2, 80);
-    interiors.push(workshopInterior(kit, { x, y, w: 168, h: 66 }));
+    panes(L.implementation.windows);
+    interiors.push(workshopInterior(kit, { x, y, w, h }));
   }
   // Audit: a lighthouse, the tallest thing in town, watching everything.
-  const lanternY = (() => {
-    const x = cx + 40;
-    const y = at(x + 27);
-    const h = 200;
-    const stripes = 5;
+  {
+    const { x, y, h, stripes, halfBottom, halfTop, cx } = L.audit;
     body.begin(3);
     win.building = 4;
     for (let k = 0; k < stripes; k++) {
       const y0 = y + (h * k) / stripes;
       const y1 = y + (h * (k + 1)) / stripes;
-      const i0 = 27 - (k / stripes) * 9;
-      const i1 = 27 - ((k + 1) / stripes) * 9;
-      body.quadPoints(x + 27 - i0, y0, x + 27 + i0, y0, x + 27 + i1, y1, x + 27 - i1, y1, k % 2 ? SLOTS.audit : SLOTS.wall, true);
+      const i0 = halfBottom - (k / stripes) * (halfBottom - halfTop);
+      const i1 = halfBottom - ((k + 1) / stripes) * (halfBottom - halfTop);
+      body.quadPoints(cx - i0, y0, cx + i0, y0, cx + i1, y1, cx - i1, y1, k % 2 ? SLOTS.audit : SLOTS.wall, true);
     }
     body.rect(x + 4, y + h, x + 50, y + h + 6, SLOTS.roof);
     body.rect(x + 12, y + h + 6, x + 42, y + h + 30, SLOTS.lamp);
-    body.tri(x + 8, y + h + 30, x + 46, y + h + 30, x + 27, y + h + 50, SLOTS.audit);
-    for (let k = 0; k < 4; k++) win.add(x + 21, y + 26 + k * 40, 12, 16, 120 + k);
-    interiors.push(lighthouseInterior(kit, { cx: x + 27, y, h, halfBottom: 27, halfTop: 18 }));
-    return y + h + 18;
-  })();
+    body.tri(x + 8, y + h + 30, x + 46, y + h + 30, cx, y + h + 50, SLOTS.audit);
+    panes(L.audit.windows);
+    interiors.push(lighthouseInterior(kit, { cx, y, h, halfBottom, halfTop }));
+  }
   // Training: an academy with a colonnade and a pediment.
   {
-    const x = cx + 120;
-    const y = at(x + 90);
+    const { x, y, w, h } = L.training;
     body.begin(4);
     win.building = 5;
-    body.rect(x, y, x + 180, y + 72, SLOTS.wall);
-    body.rect(x - 6, y + 72, x + 186, y + 80, SLOTS.training);
-    body.tri(x - 6, y + 80, x + 186, y + 80, x + 90, y + 114, SLOTS.training);
-    body.tri(x + 14, y + 84, x + 166, y + 84, x + 90, y + 106, SLOTS.wall);
-    win.grid(x + 10, x + 170, y + 8, y + 64, 6, 2, 160);
-    interiors.push(academyInterior(kit, { x, y, w: 180, h: 72 }));
+    body.rect(x, y, x + w, y + h, SLOTS.wall);
+    body.rect(x - 6, y + h, x + w + 6, y + h + 8, SLOTS.training);
+    body.tri(x - 6, y + h + 8, x + w + 6, y + h + 8, x + w / 2, y + h + 42, SLOTS.training);
+    body.tri(x + 14, y + h + 12, x + w - 14, y + h + 12, x + w / 2, y + h + 34, SLOTS.wall);
+    panes(L.training.windows);
+    interiors.push(academyInterior(kit, { x, y, w, h }));
   }
   // Media: a studio with a radio mast.
-  const mast = (() => {
-    const x = cx + 330;
-    const y = at(x + 55);
+  {
+    const { x, y, w, h, mast } = L.media;
     body.begin(5);
     win.building = 6;
-    body.rect(x, y, x + 110, y + 88, SLOTS.wall);
-    body.rect(x - 4, y + 88, x + 114, y + 96, SLOTS.media);
+    body.rect(x, y, x + w, y + h, SLOTS.wall);
+    body.rect(x - 4, y + h, x + w + 4, y + h + 8, SLOTS.media);
     body.framing = false;
-    body.rect(x + 74, y + 96, x + 78, y + 230, SLOTS.roof);
-    body.tri(x + 64, y + 96, x + 76, y + 200, x + 76, y + 96, SLOTS.roof);
-    body.tri(x + 88, y + 96, x + 76, y + 200, x + 76, y + 96, SLOTS.roof);
+    body.rect(mast.x - 2, mast.y0, mast.x + 2, mast.y1, SLOTS.roof);
+    body.tri(mast.x - 12, mast.y0, mast.x, mast.y0 + 104, mast.x, mast.y0, SLOTS.roof);
+    body.tri(mast.x + 12, mast.y0, mast.x, mast.y0 + 104, mast.x, mast.y0, SLOTS.roof);
     body.framing = true;
-    win.grid(x + 8, x + 102, y + 10, y + 80, 4, 3, 200);
-    interiors.push(studioInterior(kit, { x, y, w: 110, h: 88 }));
-    return new THREE.Vector2(x + 76, y + 232);
-  })();
+    panes(L.media.windows);
+    interiors.push(studioInterior(kit, { x, y, w, h }));
+  }
+  const lanternY = L.audit.lantern;
+  const mast = new THREE.Vector2(L.media.mast.x, L.media.mast.y1 + 2);
+  const cx = L.cx;
 
   const cut = cutUniform(BUILDINGS.length);
-  const palette = paletteMaterial(cut, 12);
+  // Per building (after the first entry, for what belongs to none): whether its painted
+  // self is drawn; and how far its render is in.
+  const painted = { value: [1, ...BUILDINGS.map(() => 1)] };
+  const inRender = { value: BUILDINGS.map(() => 0) };
+  const palette = paletteMaterial(cut, 12, painted);
   const bodyMesh = body.mesh(palette.material);
   bodyMesh.position.z = 0.45;
   group.add(bodyMesh);
@@ -289,7 +279,10 @@ export function councils(group: THREE.Group) {
   registerAnchors('councils', group, anchors);
   const opening = BUILDINGS.map(() => 0);
 
-  const windows = windowMaterial(cut);
+  const windows = windowMaterial(cut, inRender);
+  // The buildings as rendered in Blender: over their painted selves, under the windows'
+  // rooms (which land exactly in their windows).
+  const rendered = renderedStructures(group, 'councils', { z: 0.455, half });
   const wg = new THREE.BufferGeometry();
   wg.setAttribute('position', new THREE.Float32BufferAttribute(win.pos, 3));
   wg.setAttribute('uv', new THREE.Float32BufferAttribute(win.uv, 2));
@@ -372,8 +365,16 @@ export function councils(group: THREE.Group) {
         anyOpen = true;
         room.update(f);
       }
+      // The render gives way to the painted building as its wall falls away.
+      const keep = 1 - Math.min(1, opening[k]! / 0.35);
+      rendered?.show(k, keep * keep * (3 - 2 * keep));
+      const done = rendered?.shownOf(k) ?? 0;
+      painted.value[k + 1] = done < 1 || opening[k]! > 0.001 ? 1 : 0;
+      inRender.value[k] = done * keep;
     });
     if (anyOpen) kit.update(look);
+    rendered?.update(f);
+    bodyMesh.visible = painted.value.slice(1).some((v) => v > 0);
 
     people.uniforms.uShade.value.set(tone(look, 0.1));
     walkers.forEach((w, i) => {

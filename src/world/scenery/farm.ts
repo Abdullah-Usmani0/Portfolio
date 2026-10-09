@@ -5,6 +5,7 @@ import { registerAnchors, type Anchor } from '../anchors.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
 import { bandGeometry } from '../gl/water.ts';
 import { Painter, anchorOfBox, cutUniform, paletteMaterial } from './cutaway.ts';
+import { renderedStructures } from './renderedStructures.ts';
 import { barnInterior, millInterior, siloInterior, type FarmInterior } from './farmInteriors.ts';
 import { CART, CRATE, ROWS, crateAt, farmLayout } from './farmLayout.ts';
 import { interiorKit } from './interiors.ts';
@@ -46,7 +47,10 @@ const BUILDINGS = 3;
 
 const CROPS = ['#d8b45b', '#7d9d4b', '#c99a4a', '#93ad59', '#e0c27a', '#6f8f45', '#c4a456'];
 
-export function farm(group: THREE.Group) {
+/** Where each rendered piece of the farm lies: the hill behind everything on it, the sails over their tower, the dock over the water. */
+const RENDER_Z: Readonly<Record<string, number>> = { 'farm-fields': 0.31, 'farm-sails': 0.4605, 'farm-dock': 0.611 };
+
+export function farm(group: THREE.Group, half = false) {
   const L = farmLayout();
   const { cx, x0, x1, hillTop } = L;
 
@@ -68,11 +72,11 @@ export function farm(group: THREE.Group) {
     const b = a + 10;
     const top = xs.map((x, i) => Math.max(groundY(x), ys[i]! - a));
     const bot = xs.map((x, i) => Math.max(groundY(x), ys[i]! - b));
-    const mat = new THREE.MeshBasicMaterial();
+    const mat = new THREE.MeshBasicMaterial({ transparent: true });
     const mesh = new THREE.Mesh(bandGeometry(xs, top, bot), mat);
-    mesh.position.z = 0.31;
+    mesh.position.z = 0.315;
     group.add(mesh);
-    return { mat, crop };
+    return { mesh, mat, crop };
   });
   const furrow = fbm(7, 2);
 
@@ -168,7 +172,10 @@ export function farm(group: THREE.Group) {
     }
   }
   const cut = cutUniform(BUILDINGS);
-  const palette = paletteMaterial(cut, SLOTS);
+  // Whether each painted part is drawn: what belongs to no building (the scarecrow, the chute,
+  // the dock), then the barn, the silo and the windmill. Each gives way to its Blender render.
+  const painted = { value: [1, ...Array.from({ length: BUILDINGS }, () => 1)] };
+  const palette = paletteMaterial(cut, SLOTS, painted);
   const bodyMesh = body.mesh(palette.material);
   bodyMesh.position.z = 0.45;
   group.add(bodyMesh);
@@ -199,6 +206,10 @@ export function farm(group: THREE.Group) {
   const sails = sailPaint.mesh(palette.material);
   sails.position.set(m.x, m.base + m.h + 6, 0.46);
   group.add(sails);
+
+  // The farm as rendered in Blender: its terraced fields, the buildings, the sails and the dock.
+  const rendered = renderedStructures(group, 'scenarios', { z: 0.455, half, zOf: (id) => RENDER_Z[id] });
+  const renderedSails = rendered?.mesh('farm-sails') ?? null;
 
   // Inside the barn, the silo and the windmill.
   const kit = interiorKit();
@@ -338,14 +349,26 @@ export function farm(group: THREE.Group) {
     const fields = f.dive?.scene === 'scenarios' && f.dive.step === 'fields';
     if (fields && rowStart < 0) rowStart = f.time;
     if (!fields) rowStart = -1;
+    const fieldsIn = rendered?.shownOf(-1) ?? 0;
+    hillMesh.visible = fieldsIn < 1;
     rows.forEach((r, k) => {
-      let c = mixHex(tone(look, 0.24, 0.1), r.crop, 0.55 - k * 0.03 + 0.03 * furrow(f.time * 0.02 + k));
+      let glow = 0;
       if (rowStart >= 0) {
         const lt = (f.time - rowStart - 1) % 7.5;
         const lit = Math.exp(-(((lt - k * 0.55) / 0.3) ** 2));
-        c = mixHex(c, '#d6ff6b', 0.75 * lit + (lt > k * 0.55 ? 0.12 : 0) * (f.time - rowStart > 1 ? 1 : 0));
+        glow = 0.75 * lit + (lt > k * 0.55 ? 0.12 : 0) * (f.time - rowStart > 1 ? 1 : 0);
       }
-      r.mat.color.set(c);
+      if (fieldsIn >= 1) {
+        // Over the rendered crops, only the highlight.
+        r.mat.color.set('#d6ff6b');
+        r.mat.opacity = glow;
+        r.mesh.visible = glow > 0.01;
+        return;
+      }
+      const c = mixHex(tone(look, 0.24, 0.1), r.crop, 0.55 - k * 0.03 + 0.03 * furrow(f.time * 0.02 + k));
+      r.mat.color.set(mixHex(c, '#d6ff6b', glow));
+      r.mat.opacity = 1;
+      r.mesh.visible = true;
     });
 
     const pal = palette.colors;
@@ -365,6 +388,7 @@ export function farm(group: THREE.Group) {
     pal[S.coat]!.set(mixHex(tone(look, 0.2), '#6a5a9a', 0.6));
     pal[S.dark]!.set(mixHex(tone(look, 0.2), '#2a2433', 0.6));
     sails.rotation.z = -f.time * 0.6;
+    if (renderedSails) renderedSails.rotation.z = sails.rotation.z;
 
     crateMats.box.color.set(mixHex(tone(look, 0.2), '#b88552', 0.66));
     crateMats.lid.color.set(mixHex(tone(look, 0.2), '#5c3f28', 0.62));
@@ -459,7 +483,16 @@ export function farm(group: THREE.Group) {
         anyOpen = true;
         room.update(f);
       }
+      // The render gives way to the painted building as its wall falls away.
+      const keep = 1 - Math.min(1, opening[k]! / 0.35);
+      rendered?.show(k, keep * keep * (3 - 2 * keep));
+      painted.value[k + 1] = (rendered?.shownOf(k) ?? 0) < 1 || opening[k]! > 0.001 ? 1 : 0;
     });
     if (anyOpen) kit.update(look);
+    painted.value[0] = fieldsIn < 1 ? 1 : 0;
+    rendered?.update(f);
+    bodyMesh.visible = painted.value.some((v) => v > 0);
+    sails.visible = painted.value[3]! > 0;
+    dockMesh.visible = painted.value[0]! > 0;
   };
 }

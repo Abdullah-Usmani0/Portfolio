@@ -8,6 +8,7 @@
  * gives characters their faces and voices; the square in the middle is where four of them
  * talk, each in their own way.
  */
+import { seeded } from './types.ts';
 import { onValley, riverTop } from './valley.ts';
 
 /** The places the same manager works, in the order a learner meets them. */
@@ -25,6 +26,13 @@ export interface House {
   base: number;
   /** Where its door is: the manager stops here. */
   door: number;
+  /** The door's half width and height. */
+  doorW: number;
+  doorH: number;
+  /** Its windows: left, bottom, width, height. */
+  windows: [number, number, number, number][];
+  /** A chimney on the roof (left edge, bottom, top), or none. */
+  chimney: { x: number; y0: number; y1: number } | null;
 }
 
 /** kind, offset from the village centre, width, wall height, roof height. */
@@ -45,9 +53,22 @@ export const STYLES = ['Dry and clipped', 'Warm and hypey', 'Chill, thinks aloud
 
 export function villageLayout() {
   const cx = onValley('npcs', 60);
+  const rnd = seeded(42);
   const houses: House[] = PLAN.map(([kind, dx, w, h, roof]) => {
     const x0 = cx + dx;
-    return { kind, x0, w, h, roof, base: riverTop(x0 + w / 2) + 1, door: x0 + w / 2 };
+    const base = riverTop(x0 + w / 2) + 1;
+    const door = x0 + w / 2;
+    const hall = kind === 'kickoff';
+    // Windows either side of the door; the studio has one big window above it instead.
+    const windows: House['windows'] =
+      kind === 'studio' ? [[door - 20, base + 20, 40, 18]] : (w > 50 ? [0.2, 0.8] : [0.22]).map((k) => [x0 + w * k - 5, base + h * 0.42, 10, hall ? 14 : 11]);
+    // Every home has a chimney, and some of the others.
+    let chimney: House['chimney'] = null;
+    if (kind === 'home' || rnd() > 0.4) {
+      const x = x0 + w * (0.68 + rnd() * 0.12);
+      chimney = { x, y0: base + h + roof * 0.3, y1: base + h + roof * 0.95 };
+    }
+    return { kind, x0, w, h, roof, base, door, doorW: hall ? 9 : 4.5, doorH: hall ? 22 : 15, windows, chimney };
   });
   const house = (kind: HouseKind) => houses.find((h) => h.kind === kind)!;
   const review = house('review');

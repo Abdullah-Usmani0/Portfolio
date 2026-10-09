@@ -29,12 +29,15 @@ export interface BankLine {
  * journey it climbs with the camera: past the treeline into rock, then a snow-crested ridge,
  * then the summit, where the flag is.
  */
+/** Where a scene's words and set piece are: no tall pine (or tuft of tall grass) stands there. */
+export const nearWords = (x: number) => SCENES.some((s) => x > s.x - 980 && x < s.x + 660);
+
 export function bankLine(): BankLine {
   const hill = (x: number) =>
     SCENES.reduce((h, s, i) => h + (i === 0 ? 360 : 300) * Math.exp(-(((x - (s.x - 560)) / 600) ** 2)), 0);
   // No tall pine may stand behind a scene's words or in front of its set piece; they
   // frame the edges and fill the stretches between scenes instead. None grow above the treeline.
-  const clear = (x: number) => SCENES.some((s) => x > s.x - 980 && x < s.x + 660) || groundRise(x) > TREELINE;
+  const clear = (x: number) => nearWords(x) || groundRise(x) > TREELINE;
   // Bare rock is broken: a jagged edge, and towers of rock standing up where the ridge climbs
   // between two scenes, so the climb reads as a ridge, not a hill.
   const jag = fbm(5, 4);

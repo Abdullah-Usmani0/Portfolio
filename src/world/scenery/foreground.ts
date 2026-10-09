@@ -1,9 +1,10 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
-import { groundRise } from '../journey.ts';
+import { groundRise, SCENES } from '../journey.ts';
 import { flatMaterial, silhouette } from '../gl/flat.ts';
-import { bankLine } from './bankLine.ts';
-import { PEAK, SUMMIT_X, summitRidgeY } from './climbLayout.ts';
+import { bankLine, nearWords } from './bankLine.ts';
+import { PEAK, rockAt, snowAt, SUMMIT_X, summitRidgeY } from './climbLayout.ts';
+import { grassLayer, placeGrass } from './grass.ts';
 import { renderedStrip } from './renderedStrip.ts';
 import { summitProps } from './summit.ts';
 import { tone, type Layer } from './types.ts';
@@ -13,7 +14,7 @@ import { tone, type Layer } from './types.ts';
  * the journey's end (see `bankLine`). Painted, with its render (see renderedStrip.ts) over it
  * once loaded; `half` loads the half-size one (phones).
  */
-export function foreground(half = false): Layer {
+export function foreground(half = false, still: () => boolean = () => false): Layer {
   const { xs, ys, sway: sw, lift, ground, crest } = bankLine();
   const group = new THREE.Group();
   // The ground's edge at x, under its pines and blades.
@@ -68,6 +69,34 @@ export function foreground(half = false): Layer {
 
   const updateSummit = summitProps(group, { x: SUMMIT_X + PEAK.dx, y: summitRidgeY(SUMMIT_X + PEAK.dx) });
 
+  // Tall grass along the bank's edge, in tufts down its face between the scenes, thinning out
+  // as the ground turns to rock; fewer blades on a phone. Shaded down the face as the
+  // rendered bank is (its look below), and lit as high as the ground has climbed.
+  const smooth = (a: number, b: number, v: number) => {
+    const t = Math.min(1, Math.max(0, (v - a) / (b - a)));
+    return t * t * (3 - 2 * t);
+  };
+  const blades = placeGrass({
+    x0: xs[0]!,
+    x1: xs.at(-1)!,
+    edge,
+    meadow: (x) => Math.max(0, 1 - 1.6 * rockAt(x)) * (1 - snowAt(x)),
+    tufts: (x) => !nearWords(x),
+    // Short where a scene's words stand on the ridge, so the grass never crowds them: the
+    // left of the screen on a wide one, its whole width on a phone.
+    height: (x) => {
+      const [a, b] = half ? [-420, 420] : [-1000, -150];
+      let h = 1;
+      for (const sc of SCENES) h = Math.min(h, 1 - 0.5 * smooth(a - 120, a, x - sc.x) * (1 - smooth(b, b + 120, x - sc.x)));
+      return h;
+    },
+    shade: (x, y) => 0.35 + 0.65 * smooth(-560, -200, y - groundRise(x)),
+    deg: (x) => -6 + (groundRise(x) / 1400) * 40,
+    density: half ? 0.45 : 0.85,
+    seed: 17,
+  });
+  const grass = grassLayer(group, blades, { z: 0.24, still });
+
   return {
     group,
     p: 1,
@@ -84,7 +113,11 @@ export function foreground(half = false): Layer {
       snow.uniforms.uBottom.value.set(mixHex(look.snow, look.shade, 0.62));
       updateSummit(f);
       strip?.update(f);
+      grass.update(f);
     },
-    dispose: () => strip?.dispose(),
+    dispose: () => {
+      strip?.dispose();
+      grass.dispose();
+    },
   };
 }

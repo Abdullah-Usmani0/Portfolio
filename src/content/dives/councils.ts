@@ -6,7 +6,7 @@ import type { Dive } from './types.ts';
 
 export const councils: Dive = {
   scene: 'councils',
-  kicker: 'Curriculum Council',
+  kicker: 'AI course builder',
   pins: [
     { anchor: 'research', label: 'Research', step: 'research' },
     { anchor: 'design', label: 'Design', step: 'design' },

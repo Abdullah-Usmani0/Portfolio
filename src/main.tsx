@@ -7,6 +7,7 @@ import { scroller } from './motion/SmoothScroll.tsx';
 import { DIVES } from './content/dives.ts';
 import { closeDive, openDive, progress, useDive, useDay } from './motion/store.ts';
 import { anchorOf } from './world/anchors.ts';
+import { worldView } from './world/view.ts';
 
 // A read-only hook for tests and screenshots: state, not pixels. Dev, ?debug or ?test only.
 const params = new URLSearchParams(window.location.search);
@@ -36,6 +37,8 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
         for (const pin of dive.pins ?? []) used.add(pin.anchor);
         return [...used].filter((id) => !anchorOf(scene, id));
       },
+      /** Whether the world has drawn its first frame, and what is on the GPU. */
+      gpu: () => worldView.info?.() ?? null,
       /** Jump straight to a section (by id), its middle in the middle of the screen. */
       jump: (id: string) => {
         const el = document.getElementById(id);

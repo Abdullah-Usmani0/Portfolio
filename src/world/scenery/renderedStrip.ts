@@ -1,9 +1,9 @@
 import * as THREE from 'three';
 import indexJson from '../data/foregroundRender.json';
-import type { Clip } from '../gl/flat.ts';
+import { CLIP_SLOTS, type Clip } from '../gl/flat.ts';
 import { stripMaterial, type StripLook } from '../gl/strip.ts';
-import type { WorldLook } from '../palette.ts';
-import { relight, type Relight } from './relight.ts';
+import { admit, loadTexture, type Loading } from '../gl/textures.ts';
+import { relightFor } from './relight.ts';
 import type { Frame } from './types.ts';
 
 /** The foreground layers rendered in Blender (blender/foreground_render.py). */
@@ -41,22 +41,11 @@ const OVERLAP = 40;
 const NEAR = 0.6;
 const FREE = 2.2;
 
-let litLook: WorldLook | null = null;
-let lit: Relight | null = null;
-const lightFor = (look: WorldLook) => {
-  if (look !== litLook || !lit) {
-    lit = relight(look);
-    litLook = look;
-  }
-  return lit;
-};
-
 interface Loaded {
   mesh: THREE.Mesh;
   strip: ReturnType<typeof stripMaterial>;
-  light: THREE.Texture;
-  mask: THREE.Texture;
-  ready: number;
+  light: Loading;
+  mask: Loading;
   since: number | null;
   deg: number;
 }
@@ -88,27 +77,23 @@ export function renderedStrip(name: StripName, group: THREE.Group, o: { half: bo
   if (!layer || tiles.length === 0 || tiles.some((t) => !url(t, 'light') || !url(t, 'mask'))) return null;
   const width = tiles[0]!.x1 - tiles[0]!.x0;
   const x0 = tiles[0]!.x0;
-  const clip: Clip = { x0, width, ys: new Float32Array(Math.round((tiles.at(-1)!.x1 - x0) / width)).fill(1e9) };
+  const slots = Math.round((tiles.at(-1)!.x1 - x0) / width);
+  if (slots > CLIP_SLOTS) throw new Error(`${name}: ${slots} tiles, more than a clip holds`);
+  const clip: Clip = { x0, width, ys: new Float32Array(CLIP_SLOTS).fill(1e9) };
   const slotOf = (t: Tile) => Math.round((t.x0 - x0) / width);
   const loaded = new Map<number, Loaded>();
-  const loader = new THREE.TextureLoader();
+  // Where the view was last frame, in the layer's units: tiles nearest its middle download first.
+  const view = { mid: 0, span: 1 };
 
   const load = (t: Tile) => {
-    const texture = (kind: string) => {
-      const tex = loader.load(url(t, kind)!, () => {
-        const got = loaded.get(t.i);
-        if (got) got.ready++;
-      });
-      tex.colorSpace = THREE.NoColorSpace;
-      // Drawn about a texel to a pixel or larger: no mipmaps needed.
-      tex.generateMipmaps = false;
-      tex.minFilter = THREE.LinearFilter;
-      return tex;
-    };
-    const light = texture('light');
-    const mask = texture('mask');
+    // How many view widths from the middle of the view; the light before the mask.
+    const away = () => Math.max(0, Math.abs((t.x0 + t.x1) / 2 - view.mid) - width / 2) / view.span;
+    // Drawn about a texel to a pixel or larger: no mipmaps needed. The light is in colour;
+    // the mask (coverage and sway) is greyscale.
+    const light = loadTexture(url(t, 'light')!, { grey: false, priority: away });
+    const mask = loadTexture(url(t, 'mask')!, { grey: true, priority: () => away() + 0.01 });
     const w = t.x1 - t.x0;
-    const strip = stripMaterial(light, mask, { scale: layer.scale, rows: t.y1 - t.y0, pad: index.pad, width: w, look: o.look });
+    const strip = stripMaterial(light.texture, mask.texture, { scale: layer.scale, rows: t.y1 - t.y0, pad: index.pad, width: w, look: o.look });
     const segs = o.lift || o.edge ? Math.max(1, Math.round(w / 16)) : 1;
     const geo = new THREE.PlaneGeometry(w, t.y1 - t.y0, segs, 1);
     geo.translate((t.x0 + t.x1) / 2, (t.y0 + t.y1) / 2, 0);
@@ -128,7 +113,7 @@ export function renderedStrip(name: StripName, group: THREE.Group, o: { half: bo
     group.add(mesh);
     // How high the tile stands, for the low sun's last light: the climbing bank rises into it.
     const climb = o.lift ? o.lift((t.x0 + t.x1) / 2) : 0;
-    loaded.set(t.i, { mesh, strip, light, mask, ready: 0, since: null, deg: o.look.deg + (climb / 1400) * 40 });
+    loaded.set(t.i, { mesh, strip, light, mask, since: null, deg: o.look.deg + (climb / 1400) * 40 });
   };
 
   const unload = (t: Tile) => {
@@ -152,9 +137,13 @@ export function renderedStrip(name: StripName, group: THREE.Group, o: { half: bo
       const left = (f.camX - f.viewW / 2 - group.position.x) / s;
       const right = (f.camX + f.viewW / 2 - group.position.x) / s;
       const span = f.viewW / s;
-      const r = lightFor(f.look);
+      view.mid = (left + right) / 2;
+      view.span = span;
+      const r = relightFor(f.look);
       const haze = Math.min(0.9, o.look.haze * (0.7 + 0.6 * f.look.mist));
-      for (const t of tiles) {
+      // From the middle of the view outwards, so the tiles in view are shown first.
+      const order = [...tiles].sort((a, b) => Math.abs((a.x0 + a.x1) / 2 - view.mid) - Math.abs((b.x0 + b.x1) / 2 - view.mid));
+      for (const t of order) {
         const near = t.x1 > left - NEAR * span && t.x0 < right + NEAR * span;
         const far = t.x1 < left - FREE * span || t.x0 > right + FREE * span;
         if (near && !loaded.has(t.i)) load(t);
@@ -162,7 +151,7 @@ export function renderedStrip(name: StripName, group: THREE.Group, o: { half: bo
         const got = loaded.get(t.i);
         if (!got) continue;
         // By the world's clock, so the fade keeps real time even when frames come slowly.
-        if (got.ready >= 2 && got.since === null) got.since = f.time;
+        if (got.since === null && got.light.ready() && got.mask.ready() && admit(f.time)) got.since = f.time;
         const shown = got.since === null ? 0 : Math.min(1, (f.time - got.since) / FADE);
         got.mesh.visible = shown > 0;
         got.strip.uniforms.uOpacity.value = shown;
@@ -175,4 +164,13 @@ export function renderedStrip(name: StripName, group: THREE.Group, o: { half: bo
       for (const t of tiles) unload(t);
     },
   };
+}
+
+/** A mesh with the tiles' shader, for compiling it before any tile has loaded (see engine.ts). */
+export function stripWarmup(): THREE.Mesh {
+  const look: StripLook = { haze: 0, sway: 0, shadeY0: 0, shadeY1: 1, shadeFloor: 1, deg: 0 };
+  const strip = stripMaterial(new THREE.Texture(), new THREE.Texture(), { scale: 1, rows: 1, pad: 0, width: 1, look });
+  const mesh = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), strip.material);
+  mesh.frustumCulled = false;
+  return mesh;
 }

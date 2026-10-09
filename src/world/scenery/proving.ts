@@ -1,11 +1,12 @@
 import * as THREE from 'three';
 import { mixHex } from '@/motion/color.ts';
-import { fbm, flatMaterial, silhouette } from '../gl/flat.ts';
+import { flatMaterial, silhouette } from '../gl/flat.ts';
 import { registerAnchors, type Anchor } from '../anchors.ts';
 import { worldView } from '../view.ts';
 import { peopleMaterial } from '../gl/sprites.ts';
 import { bandGeometry, mistMaterial, waterfallMaterial } from '../gl/water.ts';
-import { blameShown, bridgeAt, cohortPose, graderStamp, LOOPS, managerBubble, PERSONAS, provingLayout, SCALE, type Bubble, type ProvingStep } from './provingLayout.ts';
+import { blameShown, BRIDGE_FIX, bridgeAt, cohortPose, gorgeLayout, graderStamp, LOOPS, managerBubble, PERSONAS, provingLayout, SCALE, type Bubble, type ProvingStep } from './provingLayout.ts';
+import { renderedStructures } from './renderedStructures.ts';
 import type { Frame } from './types.ts';
 import { tone } from './types.ts';
 import { riverTop } from './valley.ts';
@@ -123,52 +124,57 @@ const chip = (label: string, color: string) =>
  * planks missing. The first stumbles, the owl flags it, the bridge is mended and they all
  * cross. In the dive, each step slows one of those moments down.
  */
-export function provingGrounds(group: THREE.Group) {
+/** Where each rendered piece lies among the painted ones (by id, without its number). */
+const RENDER_Z: Readonly<Record<string, number>> = {
+  wall: 0.4005,
+  shoulders: 0.4605,
+  bridge: 0.5005,
+  'bridge-fix': 0.501,
+  owl: 0.5005,
+  desk: 0.5305,
+  lamp: 0.4705,
+  flag: 0.4805,
+};
+
+export function provingGrounds(group: THREE.Group, half = false) {
   const L = provingLayout();
-  const { cx, bx, span, left, right, deckY, ramp, deck, trail } = L;
+  const { cx, bx, span, left, right, deckY, deck, trail } = L;
 
   // The gorge: a dark back wall with the cascade pouring through it, framed by two rocky
   // shoulders the trail runs over.
-  const rough = fbm(57, 3);
+  const G = gorgeLayout(L);
   const rock = flatMaterial({ y0: riverTop(bx) - 10, y1: deckY + 40 });
   const backWall = flatMaterial({ y0: riverTop(bx) - 10, y1: deckY + 70 });
-  const wallTop = (x: number) => deckY + 50 + 18 * rough(x / 40) - 34 * Math.exp(-(((x - bx) / 36) ** 2));
   const wallXs: number[] = [];
   const wallYs: number[] = [];
-  for (let x = left - 20; x <= right + 20; x += 6) {
+  for (let x = G.wall.from; x <= G.wall.to; x += 6) {
     wallXs.push(x);
-    wallYs.push(wallTop(x));
+    wallYs.push(G.wall.top(x));
   }
-  const wall = new THREE.Mesh(silhouette(wallXs, wallYs, riverTop(bx) - 4), backWall);
+  const wall = new THREE.Mesh(silhouette(wallXs, wallYs, G.bottom), backWall);
   wall.position.z = 0.4;
   group.add(wall);
 
   const cascade = waterfallMaterial();
-  const fallTop = wallTop(bx) - 3;
-  const fallBottom = riverTop(bx) - 6;
+  const fallTop = G.fall.top;
+  const fallBottom = G.fall.bottom;
   const cascadeMesh = new THREE.Mesh(bandGeometry([bx - 30, bx + 30], [fallTop, fallTop], [fallBottom, fallBottom]), cascade.material);
   (cascadeMesh.geometry.getAttribute('uv') as THREE.BufferAttribute).set([0, 0, 0, 1, 1, 0, 1, 1]);
   cascadeMesh.position.z = 0.41;
   group.add(cascadeMesh);
 
-  for (const side of [-1, 1]) {
+  const shoulders = G.shoulders.map((sh) => {
     const xs: number[] = [];
     const ys: number[] = [];
-    const outer = side < 0 ? left - ramp - 30 : right + ramp + 30;
-    const inner = side < 0 ? bx - 26 : bx + 26;
-    const from = Math.min(outer, inner);
-    const to = Math.max(outer, inner);
-    for (let x = from; x <= to; x += 4) {
-      // The shoulder follows the trail, then falls away in a cliff face to the cascade.
-      const toCliff = side < 0 ? smoothstep(inner - 34, inner, x) : 1 - smoothstep(inner, inner + 34, x);
-      const ground = trail(Math.min(Math.max(x, from), to)) - 3 + 3 * rough(x / 18);
+    for (let x = sh.from; x <= sh.to; x += 4) {
       xs.push(x);
-      ys.push(ground - toCliff * (deckY - riverTop(x) + 6));
+      ys.push(sh.top(x));
     }
-    const shoulder = new THREE.Mesh(silhouette(xs, ys, riverTop(bx) - 4), rock);
+    const shoulder = new THREE.Mesh(silhouette(xs, ys, G.bottom), rock);
     shoulder.position.z = 0.46;
     group.add(shoulder);
-  }
+    return shoulder;
+  });
 
   const spray = mistMaterial([bx - 120, bx + 120]);
   const sprayMesh = new THREE.Mesh(bandGeometry([bx - 120, bx + 120], [fallBottom + 46, fallBottom + 46], [fallBottom - 14, fallBottom - 14]), spray.material);
@@ -197,10 +203,12 @@ export function provingGrounds(group: THREE.Group) {
       ghosts.push(g);
     }
   }
+  const bridgeParts: THREE.Mesh[] = [];
   for (const side of [-1, 1]) {
     const post = new THREE.Mesh(new THREE.PlaneGeometry(3 * SCALE, 20 * SCALE), wood);
     post.position.set(bx + (side * span) / 2, deckY + 8 * SCALE, 0.5);
     group.add(post);
+    bridgeParts.push(post);
   }
   // A hand rail following the arch, with balusters down to the deck.
   const railXs = Array.from({ length: 25 }, (_, i) => left + (i / 24) * span);
@@ -214,15 +222,18 @@ export function provingGrounds(group: THREE.Group) {
   );
   rail.position.z = 0.5;
   group.add(rail);
+  bridgeParts.push(rail);
   for (let k = 1; k < 8; k++) {
     const x = left + (k / 8) * span;
     const baluster = new THREE.Mesh(new THREE.PlaneGeometry(1.6 * SCALE, 15 * SCALE), wood);
     baluster.position.set(x, deck(x) + 8.5 * SCALE, 0.5);
     group.add(baluster);
+    bridgeParts.push(baluster);
   }
 
   // Stage markers along the trail.
   const flagMat = new THREE.MeshBasicMaterial();
+  const flagParts: THREE.Mesh[][] = [];
   for (const x of L.flags) {
     const y = trail(x);
     const post = new THREE.Mesh(new THREE.PlaneGeometry(2.5 * SCALE, 34 * SCALE), wood);
@@ -233,6 +244,7 @@ export function provingGrounds(group: THREE.Group) {
     );
     flag.position.set(x + SCALE, y + 34 * SCALE, 0.49);
     group.add(post, flag);
+    flagParts.push([post, flag]);
   }
 
   // The grader's booth, where the work is handed in. The desk stands in front of the grader
@@ -280,6 +292,11 @@ export function provingGrounds(group: THREE.Group) {
   });
   owl.add(owlPost, body, head, ears, ...eyes);
   group.add(owl);
+
+  // The grounds as rendered in Blender, each piece over its painted self: the rock and the
+  // bridge, the owl (its eyes stay the scene's, to blink and glow), the booth and the flags.
+  const rendered = renderedStructures(group, 'learners', { z: 0.5, half, zOf: (id) => RENDER_Z[id.replace(/^proving-|\d+$/g, '')] });
+  const fadeOf = (id: string) => rendered?.fadeOf(`proving-${id}`) ?? 0;
 
   // Pictures the scene holds up: badges, bubbles, the owl's blame chips, the undo.
   const tex = {
@@ -398,7 +415,19 @@ export function provingGrounds(group: THREE.Group) {
     const t = (f.time - stepStart) % LOOPS[step];
 
     const bridge = bridgeAt(L, step, t);
-    planks[3]!.visible = planks[4]!.visible = bridge.planks === 'fixed';
+    // Each painted piece until its render is in.
+    rendered?.show(BRIDGE_FIX, bridge.planks === 'fixed' ? 1 : 0);
+    rendered?.update(f);
+    wall.visible = fadeOf('wall') < 1;
+    for (const m of shoulders) m.visible = fadeOf('shoulders') < 1;
+    const bridgeIn = fadeOf('bridge') >= 1;
+    for (const m of bridgeParts) m.visible = !bridgeIn;
+    planks.forEach((p, k) => (p.visible = k === 3 || k === 4 ? bridge.planks === 'fixed' && fadeOf('bridge-fix') < 1 : !bridgeIn));
+    const owlIn = fadeOf('owl') >= 1;
+    for (const m of [owlPost, body, head, ears]) m.visible = !owlIn;
+    desk.visible = deskTop.visible = fadeOf('desk') < 1;
+    lampPole.visible = lamp.visible = fadeOf('lamp') < 1;
+    flagParts.forEach((parts, k) => parts.forEach((m) => (m.visible = fadeOf(`flag${k}`) < 1)));
     ghosts.forEach((g) => (g.visible = bridge.planks === 'ghost'));
     ghostMat.opacity = 0.35 + 0.25 * Math.sin(f.time * 5);
     // The owl's signal: a flag from the stumble until the fix, then a tick for a while.

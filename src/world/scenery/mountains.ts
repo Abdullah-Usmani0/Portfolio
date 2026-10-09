@@ -5,8 +5,9 @@ import k2RenderJson from '../data/k2Render.json';
 import { fbm, flatMaterial, silhouette, splitLine } from '../gl/flat.ts';
 import { fogBank } from '../gl/fog.ts';
 import { renderedMaterial } from '../gl/rendered.ts';
+import { admit, loadTexture } from '../gl/textures.ts';
 import type { WorldLook } from '../palette.ts';
-import { relight, type Relight } from './relight.ts';
+import { relightFor } from './relight.ts';
 import { tone, type Layer } from './types.ts';
 
 /** Horizontal and vertical world units per degree of view: a touch taller than life. */
@@ -48,17 +49,6 @@ const BELOW_DEG = 7;
 /** Fog at each rendered layer's foot, far first: how thick. The nearest layer has the valley mist. */
 const FOG = [0.85, 0.75, 0.65, 0.5, 0];
 
-/** The hour's light, worked out once a frame for all five layers. */
-let litLook: WorldLook | null = null;
-let lit: Relight | null = null;
-const lightFor = (look: WorldLook) => {
-  if (look !== litLook || !lit) {
-    lit = relight(look);
-    litLook = look;
-  }
-  return lit;
-};
-
 /**
  * Band `i` as rendered in Blender, relit for the hour (see gl/rendered.ts), or null if it was
  * not rendered. It fades in once its two textures have loaded; until then, and wherever it
@@ -70,17 +60,12 @@ function renderedBand(i: number, half: boolean) {
   const lightUrl = TEXTURES[`../textures/k2-${i}-light${size}.webp`];
   const maskUrl = TEXTURES[`../textures/k2-${i}-mask${size}.webp`];
   if (!band || !lightUrl || !maskUrl) return null;
-  let loaded = 0;
-  const loader = new THREE.TextureLoader();
-  const load = (url: string) => {
-    const t = loader.load(url, () => loaded++);
-    t.colorSpace = THREE.NoColorSpace;
-    t.minFilter = THREE.LinearMipmapLinearFilter;
-    return t;
-  };
-  const light = load(lightUrl);
-  const mask = load(maskUrl);
-  const m = renderedMaterial(light, mask, {
+  // Greyscale, and drawn a little smaller than their size: one channel, with mipmaps. They
+  // are behind every scene, so they come before any foreground tile, K2's own layer first.
+  const priority = () => (i === 0 ? -2 : -1);
+  const light = loadTexture(lightUrl, { grey: true, mipmaps: true, priority });
+  const mask = loadTexture(maskUrl, { grey: true, mipmaps: true, priority });
+  const m = renderedMaterial(light.texture, mask.texture, {
     scale: k2Render.lightScale,
     nearKm: band.near_km,
     farKm: band.far_km,
@@ -112,11 +97,11 @@ function renderedBand(i: number, half: boolean) {
     x1,
     /** Light it for the hour and fade it in; returns how far it has (0–1). */
     update(look: WorldLook, time: number) {
-      if (loaded >= 2 && since === null) since = time;
+      if (since === null && light.ready() && mask.ready() && admit(time)) since = time;
       const shown = since === null ? 0 : Math.min(1, (time - since) / FADE);
       m.uniforms.uOpacity.value = shown;
       mesh.visible = shown > 0;
-      if (shown > 0) m.set(lightFor(look));
+      if (shown > 0) m.set(relightFor(look));
       if (fog) {
         fog.mesh.visible = shown > 0;
         fog.uniforms.uLit.value.set(mixHex(mixHex(look.skyHorizon, '#ffffff', 0.4), look.sun, 0.35));

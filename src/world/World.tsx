@@ -43,6 +43,7 @@ export default function World() {
     };
     window.addEventListener('pointermove', onPointer, { passive: true });
     worldView.project = (group, x, y) => world.project(group, x, y);
+    worldView.info = () => world.info();
 
     // The dive: how far in the camera has flown, and what it is looking at.
     let fly = 0;
@@ -96,6 +97,7 @@ export default function World() {
       window.removeEventListener('resize', resize);
       window.removeEventListener('pointermove', onPointer);
       worldView.project = null;
+      worldView.info = null;
       world.dispose();
     };
   }, []);
