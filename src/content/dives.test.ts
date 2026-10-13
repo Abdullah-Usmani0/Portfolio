@@ -41,7 +41,7 @@ describe('dives', () => {
 
 describe('the copy stays conceptual', () => {
   const all = [...strings(site), ...strings(DIVES)];
-  const allowedUrls = [site.person.linkedin, site.person.github];
+  const allowedUrls = [site.person.linkedin, site.person.github, site.zero.url];
 
   it('names no internal identifiers, hosts or secrets', () => {
     const banned = [
@@ -57,7 +57,18 @@ describe('the copy stays conceptual', () => {
     for (const text of all) for (const re of banned) expect(text, `"${text}" matches ${re}`).not.toMatch(re);
   });
 
-  it('links only to the public profiles', () => {
+  it('links only to the public profiles and Zero', () => {
     for (const text of all) for (const url of text.match(/https?:\/\/\S+/g) ?? []) expect(allowedUrls).toContain(url);
+  });
+
+  it('gives every system built at Zero two or three short results', () => {
+    for (const { id, outcomes } of [...site.chapters, site.mind]) {
+      expect(outcomes.length, id).toBeGreaterThanOrEqual(2);
+      expect(outcomes.length, id).toBeLessThanOrEqual(3);
+      for (const o of outcomes) {
+        expect(o.stat.length, `${id}: ${o.stat}`).toBeLessThanOrEqual(8);
+        expect(o.label.length, `${id}: ${o.label}`).toBeLessThanOrEqual(36);
+      }
+    }
   });
 });

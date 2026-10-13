@@ -9,6 +9,9 @@ test('every word is on the page, without WebGL too, and no phone number anywhere
     await expect(page.getByText(kicker, { exact: true }).first()).toBeAttached();
   }
   await expect(page.getByText('abdullahusmani74@gmail.com').first()).toBeAttached();
+  // Zero, linked on the first screen and on each of the six systems built there.
+  await expect(page.locator('a.zero-link[href="https://www.zero.university/"][target="_blank"]')).toHaveCount(7);
+  await expect(page.locator('#top .zero-link')).toHaveCount(1);
   const text = await page.locator('body').innerText();
   for (const re of PHONE) expect(text).not.toMatch(re);
 });
@@ -19,6 +22,7 @@ test('the CV opens at #cv, has no phone number, passes axe, and leads back to th
   await expect(page.locator('.cv-name')).toHaveText('Muhammad Abdullah Usmani');
   await expect(page.locator('.cv')).toContainText('abdullahusmani74@gmail.com');
   await expect(page.locator('.cv')).toContainText('Founding AI Engineer');
+  await expect(page.locator('.cv a.zero-link[href="https://www.zero.university/"]')).toHaveCount(2);
   const text = await page.locator('.cv').innerText();
   for (const re of PHONE) expect(text).not.toMatch(re);
 

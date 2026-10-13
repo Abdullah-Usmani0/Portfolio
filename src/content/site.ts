@@ -1,7 +1,8 @@
 /**
  * Every word on the page, in one place, so the page and the printable CV say the same
- * thing. Conceptual by design: no internal names, URLs, IDs or costs; numbers are the
- * public-safe ones from the résumé and the write-ups.
+ * thing. Conceptual by design: no internal names, hosts, IDs or costs; numbers are the
+ * public-safe ones from the résumé and the write-ups. The only links are the public profiles
+ * and Zero's own site.
  *
  * `*text*` marks the words set in the serif italic.
  */
@@ -11,12 +12,20 @@ export interface Proof {
   text: string;
 }
 
+/** A result the system has to show for itself, under its scene card: a figure and what it counts. */
+export interface Outcome {
+  stat: string;
+  label: string;
+}
+
 export interface Chapter {
   id: string;
   kicker: string;
   title: string;
   /** One sentence for the scene card; the rest lives in the details panel. */
   line: string;
+  /** Two or three results, under the line. */
+  outcomes: readonly Outcome[];
   lead: string;
   proofs: readonly Proof[];
   stack: readonly string[];
@@ -31,8 +40,14 @@ export const person = {
   github: 'https://github.com/Abdullah-Usmani0',
 } as const;
 
+/** Where every system in the valley was built. */
+export const zero = {
+  name: 'Zero',
+  url: 'https://www.zero.university/',
+} as const;
+
 export const hero = {
-  line: 'Founding AI Engineer. I build agentic AI systems: self-improving multi-agent platforms and real-time voice AI.',
+  line: 'Founding AI Engineer at Zero. I build agentic AI systems: self-improving multi-agent platforms and real-time voice AI.',
   lead: 'I build *agentic AI systems*: self-improving multi-agent platforms and real-time voice AI.',
 } as const;
 
@@ -48,6 +63,11 @@ export const chapters: readonly Chapter[] = [
   {
     id: 'npcs',
     line: 'Each one is a whole person, with a voice, a face, a personality and a memory of you.',
+    outcomes: [
+      { stat: '~3,000', label: 'characters' },
+      { stat: '~90', label: 'traits each' },
+      { stat: '4', label: 'chat styles' },
+    ],
     kicker: 'AI coworkers',
     title: 'AI managers that *brief, coach and review* learners.',
     lead: 'Every character on Zero is a person, not a prompt. Each has about ninety traits, a voice of its own, a memory of you, and a context window rebuilt for every turn. A manager stays the same person across chat, planning, grading and nudges.',
@@ -61,6 +81,11 @@ export const chapters: readonly Chapter[] = [
   {
     id: 'councils',
     line: 'Give them a job role: they research, write and check a whole course on their own, and learn from their mistakes.',
+    outcomes: [
+      { stat: '127', label: 'AI agents' },
+      { stat: '56', label: 'job-role courses' },
+      { stat: '4,000+', label: 'training videos' },
+    ],
     kicker: 'AI course builder',
     title: '127 AI agents that *build training courses*.',
     lead: '127 tool-bound agents research, design, build, audit, train and film a curriculum. A SkillOps loop turns their recurring failures into better prompts, but only once the evidence spans enough scenarios to be a real pattern.',
@@ -74,6 +99,11 @@ export const chapters: readonly Chapter[] = [
   {
     id: 'scenarios',
     line: 'Realistic projects at believable companies, with files, a manager’s brief and an example of good work.',
+    outcomes: [
+      { stat: '1,100+', label: 'practice scenarios' },
+      { stat: '6,300+', label: 'stages' },
+      { stat: '45', label: 'companies' },
+    ],
     kicker: 'Scenario generation',
     title: 'Any job role, turned into *hands-on practice work*.',
     lead: 'A role becomes a focus map, the map becomes scenarios, and each scenario becomes objectives and typed stages, with the resources, voice notes, checks and the What Good Looks Like exemplar a learner needs to do real work.',
@@ -87,6 +117,10 @@ export const chapters: readonly Chapter[] = [
   {
     id: 'learners',
     line: 'They play each scenario start to finish, so confusing steps are fixed before a real person reaches them.',
+    outcomes: [
+      { stat: '5', label: 'learner personas' },
+      { stat: 'Every', label: 'fix re-tested on the next cohort' },
+    ],
     kicker: 'Simulated learners',
     title: 'AI test students that *try every course first*.',
     lead: 'Before a scenario ships, a cohort of simulated learners plays it through the real platform. They read each stage cold, ask the manager, hand in real files and retry until they pass. Where they stumble becomes a fix.',
@@ -100,6 +134,10 @@ export const chapters: readonly Chapter[] = [
   {
     id: 'voice',
     line: 'It listens, answers out loud with a moving face, and starts speaking 2.1 seconds after you stop.',
+    outcomes: [
+      { stat: '2.1 s', label: 'to the first word, down from 5.4 s' },
+      { stat: '+340%', label: 'student engagement' },
+    ],
     kicker: 'Real-time voice',
     title: 'Live video calls with *an AI manager*.',
     lead: 'LiveKit meeting agents tutor learners live, with avatar video from Tavus and HeyGen. Grading and replying in one streamed call cut the wait for the first spoken sentence from 5.4 to 2.1 seconds.',
@@ -115,6 +153,10 @@ export const chapters: readonly Chapter[] = [
 export const mind = {
   id: 'mind',
   line: 'Ten blocks of context, put together in the same order every time it replies.',
+  outcomes: [
+    { stat: '28 of 40', label: 'stuck turns taught, up from 6' },
+    { stat: '21 → 7', label: 'repeat questions' },
+  ],
   kicker: 'Context engineering',
   title: 'How each AI coworker *decides what to think about*.',
   lead: 'Every turn, a character’s context is assembled block by block, identity first and voice last. Everything above the cache line is a stable prefix the model has already read. Below it is the live turn.',

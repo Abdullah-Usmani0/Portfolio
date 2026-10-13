@@ -10,6 +10,13 @@ import { valleyScroll } from '@/lib/route.ts';
 import { progress, useDay, valley } from './store.ts';
 
 gsap.registerPlugin(ScrollTrigger);
+// ScrollTrigger remembers the browser's own scroll restoration when it registers and puts it
+// back after every refresh; the page keeps its own scroll (see route.ts), so it stays manual.
+try {
+  ScrollTrigger.clearScrollMemory('manual');
+} catch {
+  // A locked-down frame keeps the browser's own; Back still works.
+}
 
 /** The live Lenis instance, for test hooks and programmatic scrolls outside React. */
 export const scroller: { lenis: Lenis | undefined } = { lenis: undefined };
@@ -120,7 +127,7 @@ export function SmoothScroll({ children, hidden = false }: { children: ReactNode
     <ReactLenis
       root
       ref={ref}
-      options={{ autoRaf: false, anchors: true, allowNestedScroll: true, stopInertiaOnNavigate: true, autoToggle: true }}
+      options={{ autoRaf: false, anchors: true, allowNestedScroll: true, stopInertiaOnNavigate: true }}
     >
       <SceneDriver hidden={hidden} />
       {children}

@@ -324,6 +324,10 @@ main,
 
 .card-eyebrow {
   color: var(--cream-muted);
+  /* Small type over a bright sky or a building: a soft shade keeps it legible. */
+  text-shadow:
+    0 0 10px rgb(8 6 14 / 0.7),
+    0 1px 2px rgb(8 6 14 / 0.6);
 }
 
 .card-title {
@@ -336,6 +340,46 @@ main,
   line-height: 1.45;
   letter-spacing: -0.01em;
   color: var(--cream-muted);
+}
+
+/* Zero, where the work was done: always underlined, so it reads as a link even inside a label. */
+.zero-link {
+  color: inherit;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+  text-decoration-color: color-mix(in srgb, currentColor 45%, transparent);
+  transition: text-decoration-color 300ms ease;
+}
+
+.zero-link:hover,
+.zero-link:focus-visible {
+  text-decoration-color: currentColor;
+}
+
+.card-eyebrow .zero-link {
+  color: var(--cream);
+}
+
+/* A system's results, under its line. */
+.card-outcomes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 22px;
+  max-width: 40rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--cream-muted);
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.card-outcomes strong {
+  color: var(--cream);
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .scene-hero .scene-card {

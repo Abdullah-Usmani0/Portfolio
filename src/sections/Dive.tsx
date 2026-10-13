@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { gsap } from 'gsap';
 import { DIVES, stepIndex, type Dive as DiveData, type Label } from '@/content/dives.ts';
-import { pageOf } from '@/lib/route.ts';
+import { diveOf, showDive } from '@/lib/route.ts';
 import type { Side } from '@/content/dives/types.ts';
 import { scroller } from '@/motion/SmoothScroll.tsx';
-import { closeDive, openDive, useDive } from '@/motion/store.ts';
+import { closeDive, leaveDive, openDive, useDive } from '@/motion/store.ts';
 import { cn } from '@/ui/cn.ts';
 import { anchorOf } from '@/world/anchors.ts';
 import { SHEET_BELOW } from '@/world/diveFraming.ts';
@@ -218,12 +218,11 @@ export function Dive({ hidden = false }: { hidden?: boolean }) {
     if (!dive) return;
     const html = document.documentElement;
     const returnTo = document.activeElement as HTMLElement | null;
-    const url = window.location.href;
     scroller.lenis?.stop();
     html.dataset.dive = dive.scene;
     const raf = requestAnimationFrame(() => card.current?.focus({ preventScroll: true }));
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') closeDive();
+      if (e.key === 'Escape') leaveDive();
       else if (e.key === 'ArrowRight') go(1);
       else if (e.key === 'ArrowLeft') go(-1);
       else if (e.key === 'Tab' && root.current) {
@@ -247,41 +246,54 @@ export function Dive({ hidden = false }: { hidden?: boolean }) {
       window.removeEventListener('keydown', onKey);
       delete html.dataset.dive;
       scroller.lenis?.start();
-      // Put the valley's address back, unless a page (the CV, How it works) now owns it.
-      if (pageOf(window.location) === 'valley') window.history.replaceState(window.history.state, '', url);
       returnTo?.focus({ preventScroll: true });
     };
   }, [dive]);
 
-  // Each step has its own address, so a dive can be shared.
+  // Each step has its own address, so a dive can be shared, and Back closes it.
   useEffect(() => {
-    if (dive && current) window.history.replaceState(window.history.state, '', `#${dive.scene}/${current.id}`);
-  }, [dive, current]);
+    if (dive && current && !hidden) showDive(dive.scene, current.id);
+  }, [dive, current, hidden]);
 
   // A page covering the valley closes any dive that was open under it.
   useEffect(() => {
     if (hidden) closeDive();
   }, [hidden]);
 
-  // Arriving on such an address opens that dive once the page has settled: on first load
-  // after the intro, and straight away when How it works sends the visitor back to watch it.
+  // The dive follows the address. Arriving on a dive's address opens it once the page has
+  // settled: on first load after the intro, and straight away when How it works sends the
+  // visitor back to watch it. Back and Forward close and reopen it.
   const settled = useRef(false);
   useEffect(() => {
     if (hidden) return;
     const first = !settled.current;
     settled.current = true;
-    const m = window.location.hash.match(/^#([\w-]+)\/([\w-]+)$/);
-    const target = m ? DIVES[m[1]!] : undefined;
-    if (!m || !target) return;
-    const timer = window.setTimeout(
-      () => {
+    let timer = 0;
+    const follow = (delay: number) => {
+      window.clearTimeout(timer);
+      const there = diveOf(window.location);
+      const target = there ? DIVES[there.scene] : undefined;
+      const open = useDive.getState().scene;
+      if (!there || !target) {
+        if (open) closeDive();
+        return;
+      }
+      if (open === target.scene) return;
+      timer = window.setTimeout(() => {
+        // The visitor may have moved on while the page settled.
+        if (diveOf(window.location)?.scene !== target.scene) return;
         const el = document.getElementById(target.scene);
         if (el) scroller.lenis?.scrollTo(el, { offset: (el.offsetHeight - window.innerHeight) / 2, immediate: true, force: true });
-        openDive(target.scene, stepIndex(target, m[2]!));
-      },
-      first ? 1800 : 120,
-    );
-    return () => window.clearTimeout(timer);
+        openDive(target.scene, stepIndex(target, there.step));
+      }, delay);
+    };
+    follow(first ? 1800 : 120);
+    const onPop = () => follow(0);
+    window.addEventListener('popstate', onPop);
+    return () => {
+      window.clearTimeout(timer);
+      window.removeEventListener('popstate', onPop);
+    };
   }, [hidden]);
 
   const onPointerDown = (e: React.PointerEvent) => {
@@ -300,7 +312,7 @@ export function Dive({ hidden = false }: { hidden?: boolean }) {
     <div ref={root} className={cn('dive', dive && 'is-open')} aria-hidden={!dive}>
       {dive && current ? (
         <>
-          <button type="button" className="dive-back" onClick={closeDive}>
+          <button type="button" className="dive-back" onClick={leaveDive}>
             <span aria-hidden>←</span> Back to the valley
           </button>
           {!current.diagram || onWorld(current.diagram, sheet) ? <Pins dive={dive} active={current.id} card={card} /> : null}

@@ -1,7 +1,8 @@
 # Zero Valley
 
-The portfolio of **Muhammad Abdullah Usmani**, Founding AI Engineer, told as one day and
-night in an illustrated valley under K2. Each system he built is a place, and every place
+The portfolio of **Muhammad Abdullah Usmani**, Founding AI Engineer at
+[Zero](https://www.zero.university/), told as one day and night in an illustrated valley under
+K2. Each system he built at Zero is a place, labelled with Zero and its results, and every place
 opens a **deep dive**: the camera flies in, the set piece acts the system out, labels ride
 on the world and animated boards explain the detail.
 
@@ -58,7 +59,8 @@ Add `?test=1` (or `?debug`) to the URL for the read-only test hook, `window.__si
   registering it.
 - **One source of words** (`src/content/site.ts`). The valley, the dives and the CV share
   it. The copy is conceptual by design: no internal names, hosts, IDs or costs, and no
-  phone number. A unit test enforces both.
+  phone number; its only links are the public profiles and Zero's own site. A unit test
+  enforces all three.
 - **Sound, synthesized** (`src/audio`). No audio files: the Web Audio API shapes noise into
   wind and water and schedules small synthesized voices (bubbles, creaks, chirps, hoots, a
   bell), plus a felt piano on loops of different lengths, after Eno's *Music for Airports*,

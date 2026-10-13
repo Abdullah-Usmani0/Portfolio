@@ -1,9 +1,10 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { DIVES, type Diagram } from '@/content/dives.ts';
 import { chapters, explained, howItWorks, mind } from '@/content/site.ts';
-import { useSection } from '@/lib/route.ts';
+import { showSection, useSection } from '@/lib/route.ts';
 import { PageLink, ValleyLink } from '@/ui/PageLink.tsx';
 import { Rich } from '@/ui/Rich.tsx';
+import { linkZero } from '@/ui/ZeroLink.tsx';
 import { SCENES } from '@/world/journey.ts';
 import { DIAGRAMS } from './dives/registry.tsx';
 import { DiveDiagram } from './DiveDiagram.tsx';
@@ -84,7 +85,7 @@ export function Systems() {
   useLayoutEffect(() => scrollToSection(section), [section]);
 
   const jump = (id: string) => {
-    window.history.replaceState(window.history.state, '', `#systems/${id}`);
+    showSection(id);
     scrollToSection(id);
   };
 
@@ -101,7 +102,7 @@ export function Systems() {
           <h1 className="sys-h1">
             <Rich text={howItWorks.title} />
           </h1>
-          <p className="sys-intro">{howItWorks.intro}</p>
+          <p className="sys-intro">{linkZero(howItWorks.intro)}</p>
           <nav aria-label="Systems" className="sys-toc">
             {TOPICS.map((t, i) => (
               <button key={t.id} type="button" onClick={() => jump(t.id)}>

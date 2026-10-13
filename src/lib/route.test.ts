@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { pageOf, sectionOf, valleyPath } from './route.ts';
+import { diveOf, pageOf, sectionOf, valleyPath } from './route.ts';
 
 const at = (hash: string, pathname = '/') => ({ hash, pathname });
 
@@ -28,6 +28,15 @@ describe('pages', () => {
   it('leaves a /cv address for the valley once a hash names somewhere else', () => {
     // The old Back link made /cv#top, which still matched the CV, so the CV never closed.
     expect(pageOf(at('#top', '/cv'))).toBe('valley');
+  });
+
+  it('reads the dive a valley address opens, and only a dive', () => {
+    expect(diveOf(at('#voice/call'))).toEqual({ scene: 'voice', step: 'call' });
+    expect(diveOf(at('#voice/call', '/cv'))).toEqual({ scene: 'voice', step: 'call' });
+    expect(diveOf(at('#systems/voice'))).toBeUndefined();
+    expect(diveOf(at('#councils'))).toBeUndefined();
+    expect(diveOf(at('#valley'))).toBeUndefined();
+    expect(diveOf(at(''))).toBeUndefined();
   });
 
   it('reads the system a page opens at', () => {

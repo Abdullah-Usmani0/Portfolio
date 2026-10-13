@@ -64,5 +64,11 @@ test('back from the CV or How it works lands where the visitor was, without rebu
   await page.goto('/?test=1#systems/voice');
   await page.locator('#sys-voice .sys-watch').click();
   await expect(page.locator('.dive.is-open .dive-title')).toHaveText('A call, not a chat');
+  // Closed, it leaves no address behind, and Back returns to the page it was watched from.
+  await page.locator('.dive-back').click();
+  await expect(page.locator('.dive.is-open')).toHaveCount(0);
+  expect(new URL(page.url()).hash).toBe('');
+  await page.goBack();
+  await expect(page.locator('.systems')).toBeVisible();
   expect(errors).toEqual([]);
 });

@@ -27,12 +27,12 @@ export default defineConfig({
     // Without WebGL, and on a phone: every word is still there, and the CV prints.
     {
       name: 'no-webgl',
-      testMatch: /static\.spec\.ts/,
+      testMatch: /(static|history)\.spec\.ts/,
       use: { launchOptions: { args: ['--disable-gpu', '--disable-webgl', '--disable-3d-apis'] } },
     },
     {
       name: 'mobile',
-      testMatch: /static\.spec\.ts/,
+      testMatch: /(static|history)\.spec\.ts/,
       use: { viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, launchOptions: { args: ['--disable-3d-apis'] } },
     },
   ],

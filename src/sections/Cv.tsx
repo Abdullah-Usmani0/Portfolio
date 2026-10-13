@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
-import { ascent, chapters, hero, index, metrics, mind, person, skills, zeroHighlights } from '@/content/site.ts';
+import { ascent, chapters, hero, index, metrics, mind, person, skills, zero, zeroHighlights } from '@/content/site.ts';
 import { PageLink } from '@/ui/PageLink.tsx';
+import { ZeroLink } from '@/ui/ZeroLink.tsx';
 import { PageBar } from './PageBar.tsx';
 
 /** The site's copy marks a few words with `*…*` for the serif italic; on paper they are plain. */
@@ -32,12 +33,16 @@ export function Cv() {
         <header className="cv-head">
           <h1 className="cv-name">{person.name}</h1>
           <p className="cv-role">
-            {person.role} · {person.where}
+            {person.role} · <ZeroLink /> · {person.where}
           </p>
           <p className="cv-contact">
             <a href={`mailto:${person.email}`}>{person.email}</a>
-            <a href={person.linkedin}>LinkedIn</a>
-            <a href={person.github}>GitHub</a>
+            <a href={person.linkedin} target="_blank" rel="noreferrer">
+              LinkedIn
+            </a>
+            <a href={person.github} target="_blank" rel="noreferrer">
+              GitHub
+            </a>
           </p>
         </header>
 
@@ -56,12 +61,12 @@ export function Cv() {
             <div key={c.org} className="cv-item">
               <p className="cv-item-head">
                 <span>
-                  <strong>{c.role}</strong>, {c.org}
+                  <strong>{c.role}</strong>, {c.org === zero.name ? <ZeroLink /> : c.org}
                 </span>
                 <span className="cv-dates">{c.dates}</span>
               </p>
               <p>{c.note}</p>
-              {c.org === 'Zero' && (
+              {c.org === zero.name && (
                 <>
                   <ul className="cv-bullets">
                     {zeroHighlights.map((b) => (

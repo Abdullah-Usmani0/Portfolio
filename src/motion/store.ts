@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { leaveDiveAddress } from '@/lib/route.ts';
 import { WORLD_LOOKS } from '@/world/palette.ts';
 
 /** What the UI needs from the world: the hour, whether the sky is dark, the nearest scene. */
@@ -15,6 +16,11 @@ export const useDive = create<{ scene: string | null; step: number }>(() => ({ s
 /** Open a scene's dive at a step (0 = its overview). */
 export const openDive = (scene: string, step = 0) => useDive.setState({ scene, step });
 export const closeDive = () => useDive.setState({ scene: null });
+/** The visitor closes the dive: it shuts first, then leaves no address behind to open it again. */
+export const leaveDive = () => {
+  closeDive();
+  leaveDiveAddress();
+};
 
 /** The context lab's switches: which of the ten blocks are in the window. */
 export const useLab = create<{ on: boolean[] }>(() => ({ on: Array.from({ length: 10 }, () => true) }));

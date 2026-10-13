@@ -5,7 +5,7 @@ import { App } from './App.tsx';
 import { initSound, soundState } from './audio/sound.ts';
 import { scroller } from './motion/SmoothScroll.tsx';
 import { DIVES } from './content/dives.ts';
-import { closeDive, openDive, progress, useDive, useDay } from './motion/store.ts';
+import { leaveDive, openDive, progress, useDive, useDay } from './motion/store.ts';
 import { anchorOf } from './world/anchors.ts';
 import { worldView } from './world/view.ts';
 
@@ -21,7 +21,7 @@ if (import.meta.env.DEV || params.has('debug') || params.has('test')) {
       /** Where the journey is: 0 = the first scene centred, 1 = the next, … */
       s: progress.s,
       /** Open a scene's deep dive at a step, or close it. */
-      dive: (scene: string | null, step = 0) => (scene ? openDive(scene, step) : closeDive()),
+      dive: (scene: string | null, step = 0) => (scene ? openDive(scene, step) : leaveDive()),
       diveState: () => useDive.getState(),
       /** Whether sound is wanted, whether it plays, and the audio context's own state. */
       sound: soundState(),

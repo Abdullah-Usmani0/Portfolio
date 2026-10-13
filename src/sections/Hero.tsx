@@ -1,10 +1,13 @@
 import { hero, person } from '@/content/site.ts';
+import { ZeroLink } from '@/ui/ZeroLink.tsx';
 import { Scene } from './Scene.tsx';
 
 export function Hero() {
   return (
     <Scene id="top" className="scene-hero">
       <p className="eyebrow card-eyebrow" data-intro="fade">
+        <ZeroLink />
+        <span aria-hidden> · </span>
         {person.where}
       </p>
       <h1 className="display-xl" data-intro="name">
